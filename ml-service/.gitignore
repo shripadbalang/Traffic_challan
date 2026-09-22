@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+*.pt
+*.pth
+*.onnx
+runs/
+debug_*.jpg
+debug_*.png
+ocr_test_*.jpg
+ocr_test_*.png
+production_plate_crop.jpg
+plate_current.jpg
+debug_crop.jpg
+debug_crop_processed.jpg

@@ -1,0 +1,105 @@
+# ==============================================================================
+# Git Ignore Rules for Traffic E-Challan Project
+# ==============================================================================
+
+# --- Operating System & IDE Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# --- Python & Bytecode ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Virtual Environments ---
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+**/venv/
+**/.venv/
+**/env/
+
+# --- Environment Variables & Secrets ---
+.env
+.env.*
+!.env.example
+*.local
+
+# --- Testing & Type Checking ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Logs, Temporary & Cache Files ---
+*.log
+*.tmp
+*.temp
+temp/
+tmp/
+
+# --- Machine Learning Model Weights (Keep commit size lean) ---
+*.pt
+*.pth
+*.onnx
+*.bin
+*.weights
+*.h5
+*.tflite
+*.engine
+*.safetensors
+
+# --- YOLO & ML Run Outputs ---
+runs/
+**/runs/
+
+# --- Temporary OCR & Debug Image Outputs ---
+debug_*.jpg
+debug_*.jpeg
+debug_*.png
+ocr_test_*.jpg
+ocr_test_*.jpeg
+ocr_test_*.png
+production_plate_crop.jpg
+plate_current.jpg
+debug_crop.jpg
+debug_crop_processed.jpg
+
+# --- Backend Runtime Storage (Keep directory placeholders) ---
+storage/evidence/*
+!storage/evidence/.gitkeep
+storage/receipts/*
+!storage/receipts/.gitkeep
+**/storage/evidence/*
+!**/storage/evidence/.gitkeep
+**/storage/receipts/*
+!**/storage/receipts/.gitkeep

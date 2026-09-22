@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+venv/
+__pycache__/
+*.pyc
+storage/evidence/*
+storage/receipts/*
+!storage/evidence/.gitkeep
+!storage/receipts/.gitkeep
