@@ -17,14 +17,18 @@ def _load(name: str, path: str):
         return _model_cache[name]
 
     if not os.path.exists(path):
-        print(
-            f"[ml-service] WARNING: model file not found "
-            f"for '{name}' at '{path}'"
-        )
-
-        _model_cache[name] = None
-
-        return None
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        ml_service_dir = os.path.dirname(app_dir)
+        alt_path = os.path.join(ml_service_dir, path.lstrip("./\\"))
+        if os.path.exists(alt_path):
+            path = alt_path
+        else:
+            print(
+                f"[ml-service] WARNING: model file not found "
+                f"for '{name}' at '{path}' (also checked '{alt_path}')"
+            )
+            _model_cache[name] = None
+            return None
 
     from ultralytics import YOLO
 
@@ -123,6 +127,21 @@ def get_plate_model():
     )
 
 
+def get_pose_model():
+    """
+    Load YOLO11 Pose estimation model for rider orientation/heading analysis.
+    """
+    model_path = getattr(
+        settings,
+        "POSE_MODEL_PATH",
+        "./models/yolo11n-pose.pt"
+    )
+    return _load(
+        "pose",
+        model_path
+    )
+
+
 def preload_all():
     """
     Load all models when the ML service starts.
@@ -134,6 +153,7 @@ def preload_all():
     print("[ml-service] Preloading models...")
 
     get_general_model()
+    get_pose_model()
     get_helmet_model()
     get_wrong_side_model()
     get_plate_model()

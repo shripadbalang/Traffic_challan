@@ -2,7 +2,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    GENERAL_MODEL_PATH: str = "./yolo11n.pt"
+    GENERAL_MODEL_PATH: str = "./models/yolo11n.pt"
+
+    POSE_MODEL_PATH: str = "./models/yolo11n-pose.pt"
 
     HELMET_MODEL_PATH: str = "./models/helmet_best.pt"
 
@@ -22,7 +24,9 @@ class Settings(BaseSettings):
 
     CONFIDENCE_THRESHOLD: float = 0.40
 
-    PLATE_CONFIDENCE_THRESHOLD: float = 0.50
+    WRONG_SIDE_CONFIDENCE_THRESHOLD: float = 0.50
+
+    PLATE_CONFIDENCE_THRESHOLD: float = 0.25
 
     PERSON_CLASS_ID: int = 0
 
@@ -31,8 +35,19 @@ class Settings(BaseSettings):
     TRIPLE_RIDING_PERSON_IOU_THRESHOLD: float = 0.08
 
     TRIPLE_RIDING_MIN_PEOPLE: int = 3
+    TRIPLE_RIDING_CONFIDENCE_THRESHOLD: float = 0.30
 
     VIDEO_FRAME_SAMPLE_RATE: int = 15
+
+    # Open-LPR Integration Settings (Disabled for fast local OCR)
+    OPEN_LPR_ENABLED: bool = False
+    OPEN_LPR_MODE: str = "service"  # "service" or "vlm"
+    OPEN_LPR_API_URL: str = "http://open-lpr:8000/api/v1/ocr/"
+    OPEN_LPR_VLM_BASE_URL: str = ""
+    OPEN_LPR_VLM_API_KEY: str = ""
+    OPEN_LPR_VLM_MODEL: str = "qwen2-vl-7b-instruct"
+    OPEN_LPR_TIMEOUT: float = 12.0
+    OPEN_LPR_FALLBACK_TO_EASYOCR: bool = True
 
     class Config:
         env_file = ".env"

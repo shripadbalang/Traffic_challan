@@ -8,6 +8,7 @@ that: try an exact match first (fast, common case), and if that fails, fall
 back to finding the closest registered plate within a reasonable similarity
 threshold.
 """
+import re
 import difflib
 from typing import Optional, Tuple
 
@@ -28,24 +29,48 @@ def find_vehicle_by_plate(db: Session, detected_plate: str) -> Tuple[Optional[mo
     if not detected_plate:
         return None, 0.0
 
-    detected_plate = detected_plate.upper().strip()
+    raw_plate = str(detected_plate).upper().strip()
+    clean_detected = re.sub(r"[\s\-]", "", raw_plate)
+    if not clean_detected:
+        return None, 0.0
 
-    # 1. Exact match — the common, ideal case
-    vehicle = db.query(models.Vehicle).filter(models.Vehicle.plate_number == detected_plate).first()
+    # 1. Exact match on cleaned plate
+    vehicle = db.query(models.Vehicle).filter(models.Vehicle.plate_number == clean_detected).first()
     if vehicle:
         return vehicle, 1.0
 
-    # 2. Fuzzy fallback — find the closest registered plate, if any are close enough
+    # 2. Exact match on raw plate (in case plate has spaces/hyphens in DB)
+    if raw_plate != clean_detected:
+        vehicle = db.query(models.Vehicle).filter(models.Vehicle.plate_number == raw_plate).first()
+        if vehicle:
+            return vehicle, 1.0
+
+    # 3. Check all registered vehicles with clean normalization
     all_vehicles = db.query(models.Vehicle).all()
     if not all_vehicles:
         return None, 0.0
 
-    plate_numbers = [v.plate_number for v in all_vehicles]
-    close_matches = difflib.get_close_matches(detected_plate, plate_numbers, n=1, cutoff=FUZZY_MATCH_CUTOFF)
-    if not close_matches:
-        return None, 0.0
+    for v in all_vehicles:
+        if re.sub(r"[\s\-]", "", v.plate_number).upper() == clean_detected:
+            return v, 1.0
 
-    matched_plate = close_matches[0]
-    similarity = difflib.SequenceMatcher(None, detected_plate, matched_plate).ratio()
-    vehicle = next(v for v in all_vehicles if v.plate_number == matched_plate)
-    return vehicle, similarity
+    # 4. Fuzzy fallback — compare cleaned plates
+    clean_map = {re.sub(r"[\s\-]", "", v.plate_number).upper(): v for v in all_vehicles}
+    clean_plates = list(clean_map.keys())
+
+    close_matches = difflib.get_close_matches(clean_detected, clean_plates, n=1, cutoff=FUZZY_MATCH_CUTOFF)
+    if not close_matches:
+        # Also try matching raw plate against raw vehicle plates
+        raw_plates = [v.plate_number for v in all_vehicles]
+        raw_close = difflib.get_close_matches(raw_plate, raw_plates, n=1, cutoff=FUZZY_MATCH_CUTOFF)
+        if not raw_close:
+            return None, 0.0
+        matched_plate = raw_close[0]
+        similarity = difflib.SequenceMatcher(None, raw_plate, matched_plate).ratio()
+        vehicle = next(v for v in all_vehicles if v.plate_number == matched_plate)
+        return vehicle, round(similarity, 3)
+
+    matched_clean = close_matches[0]
+    similarity = difflib.SequenceMatcher(None, clean_detected, matched_clean).ratio()
+    vehicle = clean_map[matched_clean]
+    return vehicle, round(similarity, 3)

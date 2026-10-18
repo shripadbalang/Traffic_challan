@@ -1,0 +1,2 @@
+# Developer & Architectural Intelligence Tooling
+graphifyy[sql]>=0.9.65

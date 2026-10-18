@@ -1,0 +1,55 @@
+# ==============================================================================
+# Graphify Ignore Rules for Traffic E-Challan Project
+# ==============================================================================
+# Ignore environments, binary weights, media files, and caches to keep the
+# knowledge graph focused on code architecture, schemas, and documentation.
+
+# --- Virtual Environments ---
+**/venv/**
+**/.venv/**
+**/env/**
+venv/**
+.venv/**
+
+# --- Machine Learning Model Weights & Binaries ---
+**/*.pt
+**/*.pth
+**/*.onnx
+**/*.bin
+**/*.weights
+**/*.h5
+**/*.tflite
+**/*.safetensors
+**/*.engine
+models/**
+yolo11n.pt
+
+# --- Media, Test Images & Evidence ---
+**/*.jpg
+**/*.jpeg
+**/*.png
+**/*.gif
+**/*.webp
+**/*.svg
+**/*.mp4
+**/*.avi
+**/*.mov
+test-assets/**
+storage/**
+**/storage/**
+backend/storage/**
+
+# --- Cache, Temp & Run Outputs ---
+**/__pycache__/**
+**/*.py[cod]
+**/.pytest_cache/**
+**/.mypy_cache/**
+**/.ruff_cache/**
+**/runs/**
+runs/**
+*.log
+*.tmp
+
+# --- Graphify Internal Output Cache ---
+graphify-out/cache/**
+.git/**

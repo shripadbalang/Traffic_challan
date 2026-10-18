@@ -6,14 +6,14 @@ YOLO models (helmet, wrong-side, triple-riding, plate) and exposes one endpoint,
 
 ## Setup
 
-1. **Place your trained model files** in the `models/` folder, named exactly:
+1. **Place your trained model files** in the `models/` folder, configured in `app/config.py`:
    ```
-   models/helmet.pt
-   models/wrong_side.pt
-   models/triple_riding.pt
-   models/plate.pt
+   models/yolo11n.pt
+   models/helmet_best.pt
+   models/wrong_side_best.pt
+   models/triple_riding_best.pt
+   models/numberplate_best.pt
    ```
-   (Or edit the paths in `app/config.py` if you'd rather keep your own file names/locations.)
 
 2. **Create a virtual environment and install dependencies:**
    ```
@@ -53,12 +53,15 @@ YOLO models (helmet, wrong-side, triple-riding, plate) and exposes one endpoint,
    as a final sanity check that config.py matches reality.
 
 ## Testing it standalone
-
-Once running, test with a single image before connecting it to the main backend:
-
+ 
+Once running, you can run the test script:
+```bash
+python tests/test_detect.py
+```
+Or test via Python with sample test media:
 ```python
 import requests
-with open("test_image.jpg", "rb") as f:
+with open("../test-assets/samples/test_image.jpg", "rb") as f:
     r = requests.post("http://127.0.0.1:8001/detect", files={"file": f})
 print(r.json())
 ```

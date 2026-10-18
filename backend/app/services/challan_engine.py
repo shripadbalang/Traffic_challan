@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app import models
+from app.services.violation_rules import is_violation_allowed_for_vehicle
 
 # Repeat-offense multiplier: if the same vehicle has N prior challans for the
 # SAME violation type within the lookback window, the fine is scaled up.
@@ -47,6 +48,11 @@ def create_challan(
     latitude: float = None,
     longitude: float = None,
 ) -> models.Challan:
+    if not is_violation_allowed_for_vehicle(vehicle.vehicle_type, violation_type.code):
+        raise ValueError(
+            f"Violation '{violation_type.name}' ({violation_type.code}) is not applicable to vehicle '{vehicle.plate_number}' of type '{vehicle.vehicle_type}'."
+        )
+
     fine_amount = calculate_fine(db, vehicle.id, violation_type)
 
     challan = models.Challan(

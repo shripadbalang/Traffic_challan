@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: echallan-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET:-super-secret-jwt-key-replace-in-production}
+      - ML_SERVICE_URL=http://ml-service:8001
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - EVIDENCE_STORAGE_PATH=/app/storage/evidence
+      - RECEIPT_STORAGE_PATH=/app/storage/receipts
+    volumes:
+      - ./backend/storage:/app/storage
+    depends_on:
+      - ml-service
+    networks:
+      - echallan-network
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: echallan-ml-service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - OPEN_LPR_ENABLED=${OPEN_LPR_ENABLED:-true}
+      - OPEN_LPR_MODE=${OPEN_LPR_MODE:-service}
+      - OPEN_LPR_API_URL=${OPEN_LPR_API_URL:-http://open-lpr:8000/api/v1/ocr/}
+      - OPEN_LPR_VLM_BASE_URL=${OPEN_LPR_VLM_BASE_URL:-}
+      - OPEN_LPR_VLM_API_KEY=${OPEN_LPR_VLM_API_KEY:-}
+      - OPEN_LPR_VLM_MODEL=${OPEN_LPR_VLM_MODEL:-qwen2-vl-7b-instruct}
+    volumes:
+      - ./ml-service/models:/app/models
+    networks:
+      - echallan-network
+
+  open-lpr:
+    image: ghcr.io/faisalthaheem/open-lpr:latest
+    container_name: echallan-open-lpr
+    restart: unless-stopped
+    ports:
+      - "8002:8000"
+    environment:
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - QWEN_BASE_URL=${QWEN_BASE_URL:-https://ollama.computedsynergy.com/v1}
+      - QWEN_MODEL=${QWEN_MODEL:-qwen3-vl-4b-instruct}
+    networks:
+      - echallan-network
+
+networks:
+  echallan-network:
+    driver: bridge

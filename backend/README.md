@@ -21,10 +21,14 @@
    pip install -r requirements.txt
    ```
 
-5. **Seed officer/admin login accounts:**
+5. **Seed demo database (citizens, vehicles, officers, admin, challans):**
    ```bash
-   python -m scripts.seed_accounts
+   python -m scripts.seed_demo_data
    ```
+   *To customize demo people or vehicles*:
+   - Edit `scripts/demo_data.json` directly to put in your own names, mobile numbers, and vehicle plates.
+   - Or run interactively: `python -m scripts.seed_demo_data --add-citizen`
+   - To reset cleanly: `python -m scripts.seed_demo_data --clean`
 
 6. **Run the server:**
    ```bash

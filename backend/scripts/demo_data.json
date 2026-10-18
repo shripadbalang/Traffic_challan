@@ -1,0 +1,30 @@
+{
+  "admin": {
+    "full_name": "System Administrator",
+    "email": "admin@echallan.gov.in",
+    "mobile_number": "9000000001",
+    "password": "Admin@123"
+  },
+  "officers": [
+    {
+      "full_name": "Inspector Ramesh Patil",
+      "email": "officer1@echallan.gov.in",
+      "mobile_number": "9876543210",
+      "password": "Officer@123",
+      "badge_number": "MH-PUN-0042",
+      "station": "Shivajinagar Traffic Division",
+      "jurisdiction": "Pune Central"
+    },
+    {
+      "full_name": "Sub-Inspector Sunita Shinde",
+      "email": "officer2@echallan.gov.in",
+      "mobile_number": "9876543211",
+      "password": "Officer@123",
+      "badge_number": "MH-PUN-0089",
+      "station": "Kothrud Traffic Division",
+      "jurisdiction": "Pune West"
+    }
+  ],
+  "citizens": [],
+  "unregistered_rto_vehicles": []
+}

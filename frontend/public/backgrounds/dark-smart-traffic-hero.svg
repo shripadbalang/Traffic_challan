@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Base Background Gradient -->
+    <linearGradient id="dark-bg-hero" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#080F1D"/>
+      <stop offset="40%" stop-color="#0B1220"/>
+      <stop offset="75%" stop-color="#0E1729"/>
+      <stop offset="100%" stop-color="#070D18"/>
+    </linearGradient>
+
+    <!-- Ambient Cyan Radial Glow -->
+    <radialGradient id="cyan-glow" cx="50%" cy="30%" r="55%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.12"/>
+      <stop offset="45%" stop-color="#3B82F6" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#0B1220" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Top Left Blue Atmosphere -->
+    <radialGradient id="top-left-glow" cx="15%" cy="10%" r="45%">
+      <stop offset="0%" stop-color="#1E3A8A" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#0B1220" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Horizon Vanishing Light -->
+    <radialGradient id="horizon-glow" cx="50%" cy="68%" r="35%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.16"/>
+      <stop offset="35%" stop-color="#1D4ED8" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#0B1220" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Traffic Light Trail Cyan Gradient -->
+    <linearGradient id="cyan-trail" x1="0%" y1="100%" x2="50%" y2="65%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#3B82F6" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Traffic Light Trail Amber Gradient -->
+    <linearGradient id="amber-trail" x1="100%" y1="100%" x2="50%" y2="65%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.32"/>
+      <stop offset="50%" stop-color="#EF4444" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Skyline Fill Gradient -->
+    <linearGradient id="skyline-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#16253D" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0B1220" stop-opacity="0.9"/>
+    </linearGradient>
+
+    <!-- Secondary Skyline -->
+    <linearGradient id="skyline-back" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1C2E4A" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0B1220" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <!-- Grid Line Fade -->
+    <linearGradient id="grid-fade" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Background Fill -->
+  <rect width="1920" height="1080" fill="url(#dark-bg-hero)"/>
+
+  <!-- 2. Atmospheric Radiance Layers -->
+  <rect width="1920" height="1080" fill="url(#top-left-glow)"/>
+  <rect width="1920" height="1080" fill="url(#cyan-glow)"/>
+  <rect width="1920" height="1080" fill="url(#horizon-glow)"/>
+
+  <!-- 3. Distant Smart City Silhouette (Background Layer) -->
+  <path d="M 0 710 
+           L 80 710 L 80 660 L 130 660 L 130 710 
+           L 180 710 L 180 630 L 220 630 L 220 710 
+           L 300 710 L 300 600 L 350 600 L 350 710
+           L 420 710 L 420 645 L 470 645 L 470 710
+           L 540 710 L 540 590 L 580 590 L 580 550 L 590 550 L 590 710
+           L 660 710 L 660 620 L 720 620 L 720 710
+           L 800 710 L 800 650 L 850 650 L 850 710
+           L 960 710
+           L 1070 710 L 1070 640 L 1120 640 L 1120 710
+           L 1200 710 L 1200 610 L 1250 610 L 1250 710
+           L 1330 710 L 1330 570 L 1345 530 L 1360 570 L 1380 570 L 1380 710
+           L 1450 710 L 1450 630 L 1500 630 L 1500 710
+           L 1580 710 L 1580 600 L 1630 600 L 1630 710
+           L 1710 710 L 1710 650 L 1760 650 L 1760 710
+           L 1840 710 L 1840 625 L 1890 625 L 1890 710
+           L 1920 710 L 1920 1080 L 0 1080 Z" 
+        fill="url(#skyline-back)"/>
+
+  <!-- 4. Foreground Smart City Silhouette (Closer Tier) -->
+  <path d="M 0 740
+           L 60 740 L 60 680 L 110 680 L 110 740
+           L 160 740 L 160 650 L 170 610 L 180 650 L 210 650 L 210 740
+           L 270 740 L 270 670 L 330 670 L 330 740
+           L 390 740 L 390 630 L 440 630 L 440 740
+           L 500 740 L 500 660 L 550 660 L 550 740
+           L 620 740 L 620 680 L 670 680 L 670 740
+           L 750 740 L 750 690 L 820 690 L 820 740
+           L 960 740
+           L 1100 740 L 1100 690 L 1170 690 L 1170 740
+           L 1250 740 L 1250 675 L 1300 675 L 1300 740
+           L 1370 740 L 1370 620 L 1420 620 L 1420 740
+           L 1480 740 L 1480 660 L 1530 660 L 1530 740
+           L 1600 740 L 1600 640 L 1610 600 L 1620 640 L 1660 640 L 1660 740
+           L 1730 740 L 1730 680 L 1780 680 L 1780 740
+           L 1850 740 L 1850 665 L 1900 665 L 1900 740
+           L 1920 740 L 1920 1080 L 0 1080 Z" 
+        fill="url(#skyline-grad)"/>
+
+  <!-- 5. Tower Antennas & Subtle Cyan Signal Beacons -->
+  <line x1="585" y1="550" x2="585" y2="520" stroke="#06B6D4" stroke-width="1.5" stroke-opacity="0.4"/>
+  <circle cx="585" cy="518" r="2" fill="#38BDF8" fill-opacity="0.7"/>
+
+  <line x1="1347" y1="530" x2="1347" y2="495" stroke="#3B82F6" stroke-width="1.5" stroke-opacity="0.45"/>
+  <circle cx="1347" cy="493" r="2.5" fill="#60A5FA" fill-opacity="0.8"/>
+
+  <line x1="175" y1="610" x2="175" y2="580" stroke="#06B6D4" stroke-width="1" stroke-opacity="0.35"/>
+  <circle cx="175" cy="578" r="1.5" fill="#38BDF8" fill-opacity="0.6"/>
+
+  <line x1="1615" y1="600" x2="1615" y2="565" stroke="#06B6D4" stroke-width="1" stroke-opacity="0.35"/>
+  <circle cx="1615" cy="563" r="1.5" fill="#38BDF8" fill-opacity="0.6"/>
+
+  <!-- 6. Smart Traffic Perspective Road Lines (Converging toward Horizon: 960, 680) -->
+  <g opacity="0.65">
+    <!-- Center Road Boundary Lines -->
+    <line x1="960" y1="680" x2="480" y2="1080" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.2"/>
+    <line x1="960" y1="680" x2="1440" y2="1080" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.2"/>
+
+    <!-- Outer Guideway Lines -->
+    <line x1="960" y1="680" x2="180" y2="1080" stroke="#06B6D4" stroke-width="0.8" stroke-opacity="0.12"/>
+    <line x1="960" y1="680" x2="1740" y2="1080" stroke="#06B6D4" stroke-width="0.8" stroke-opacity="0.12"/>
+
+    <!-- Lane Dividers (Dashed Perspective) -->
+    <line x1="960" y1="680" x2="720" y2="1080" stroke="#38BDF8" stroke-width="1.5" stroke-dasharray="14,18" stroke-opacity="0.18"/>
+    <line x1="960" y1="680" x2="1200" y2="1080" stroke="#38BDF8" stroke-width="1.5" stroke-dasharray="14,18" stroke-opacity="0.18"/>
+
+    <!-- Center Line -->
+    <line x1="960" y1="680" x2="960" y2="1080" stroke="#60A5FA" stroke-width="1.2" stroke-dasharray="20,24" stroke-opacity="0.2"/>
+
+    <!-- Horizontal Perspective Transverse Grid Lines -->
+    <line x1="910" y1="710" x2="1010" y2="710" stroke="#38BDF8" stroke-width="0.8" stroke-opacity="0.12"/>
+    <line x1="840" y1="755" x2="1080" y2="755" stroke="#38BDF8" stroke-width="0.8" stroke-opacity="0.14"/>
+    <line x1="740" y1="820" x2="1220" y2="820" stroke="#38BDF8" stroke-width="0.9" stroke-opacity="0.16"/>
+    <line x1="600" y1="910" x2="1360" y2="910" stroke="#38BDF8" stroke-width="1.0" stroke-opacity="0.18"/>
+    <line x1="420" y1="1025" x2="1540" y2="1025" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.2"/>
+  </g>
+
+  <!-- 7. Ambient Traffic Light Trails (Left Inbound: Cyan/Blue; Right Outbound: Amber/Red) -->
+  <!-- Left Side: Cyan Light Trails -->
+  <path d="M -50 1080 C 400 980, 800 800, 955 685" fill="none" stroke="url(#cyan-trail)" stroke-width="2.5"/>
+  <path d="M 50 1080 C 480 960, 820 780, 958 683" fill="none" stroke="url(#cyan-trail)" stroke-width="1.5"/>
+
+  <!-- Right Side: Amber Light Trails -->
+  <path d="M 1970 1080 C 1520 980, 1120 800, 965 685" fill="none" stroke="url(#amber-trail)" stroke-width="2.5"/>
+  <path d="M 1870 1080 C 1440 960, 1100 780, 962 683" fill="none" stroke="url(#amber-trail)" stroke-width="1.5"/>
+
+  <!-- 8. Subtle Digital Network Particles / Nodes near Horizon -->
+  <g fill="#38BDF8" opacity="0.3">
+    <circle cx="890" cy="670" r="1.5"/>
+    <circle cx="1030" cy="670" r="1.5"/>
+    <circle cx="830" cy="650" r="1"/>
+    <circle cx="1090" cy="650" r="1"/>
+    <circle cx="960" cy="680" r="2.5" fill="#67E8F9" opacity="0.7"/>
+  </g>
+</svg>

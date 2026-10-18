@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Crisp Solid Silver Base -->
+    <linearGradient id="silver-dash-base" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#F1F5F9"/>
+    </linearGradient>
+
+    <!-- Faint Top Corner Pale Blue Ambient Radiance -->
+    <radialGradient id="dash-corner-glow" cx="85%" cy="5%" r="45%">
+      <stop offset="0%" stop-color="#DBEAFE" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#F8FAFC" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Faint Flowing Wave Fill 1 -->
+    <linearGradient id="wave-faint-1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E2E8F0" stop-opacity="0.25"/>
+      <stop offset="50%" stop-color="#DBEAFE" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.3"/>
+    </linearGradient>
+
+    <!-- Faint Flowing Wave Fill 2 -->
+    <linearGradient id="wave-faint-2" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#E2E8F0" stop-opacity="0.2"/>
+      <stop offset="60%" stop-color="#CBD5E1" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.25"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Base Fill -->
+  <rect width="1920" height="1080" fill="url(#silver-dash-base)"/>
+  <rect width="1920" height="1080" fill="url(#dash-corner-glow)"/>
+
+  <!-- 2. Gentle Top Peripheral Wave Arc -->
+  <path d="M -50 -10 C 450 120, 920 60, 1420 140 C 1720 180, 1880 110, 2000 80 L 2000 -10 Z" 
+        fill="url(#wave-faint-1)"/>
+  <path d="M -50 -10 C 450 120, 920 60, 1420 140 C 1720 180, 1880 110, 2000 80" 
+        fill="none" stroke="#CBD5E1" stroke-width="0.8" stroke-opacity="0.22"/>
+
+  <!-- 3. Gentle Bottom Peripheral Wave Arc -->
+  <path d="M -50 1100 C 400 980, 850 1040, 1320 950 C 1650 880, 1860 970, 2000 940 L 2000 1100 Z" 
+        fill="url(#wave-faint-2)"/>
+  <path d="M -50 1100 C 400 980, 850 1040, 1320 950 C 1650 880, 1860 970, 2000 940" 
+        fill="none" stroke="#CBD5E1" stroke-width="0.8" stroke-opacity="0.2"/>
+</svg>

@@ -3,7 +3,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, String, Boolean, DateTime, ForeignKey, Numeric, Float, Text, Enum
+    Column, String, Boolean, DateTime, ForeignKey, Numeric, Float, Text, Enum, Integer
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -16,6 +16,7 @@ def gen_uuid():
 
 
 class UserRole(str, enum.Enum):
+    owner = "owner"
     citizen = "citizen"
     officer = "officer"
     admin = "admin"
@@ -65,6 +66,7 @@ class Vehicle(Base):
     vehicle_type = Column(String, nullable=False)  # e.g. "motorcycle", "car"
     model = Column(String, nullable=True)
     rto_code = Column(String, nullable=True)  # e.g. "MH12"
+    registered_mobile = Column(String, nullable=True, index=True)
     registration_date = Column(DateTime, nullable=True)
 
     owner = relationship("User", back_populates="vehicles")
@@ -172,8 +174,58 @@ class OtpCode(Base):
     __tablename__ = "otp_codes"
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    mobile_number = Column(String, nullable=False, index=True)
+    mobile_number = Column(String, nullable=True, index=True)
+    email = Column(String, nullable=True, index=True)
     code = Column(String, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     is_used = Column(Boolean, default=False)
+    attempts = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class EnforcementAction(Base):
+    __tablename__ = "enforcement_actions"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    officer_id = Column(UUID(as_uuid=False), ForeignKey("officers.id"), nullable=False)
+    vehicle_id = Column(UUID(as_uuid=False), ForeignKey("vehicles.id"), nullable=False)
+    vehicle_number = Column(String, nullable=False, index=True)
+    action_type = Column(String, nullable=False)  # "Warning Notice", "Physical Notice", "Tow Request", "Court Summons", "Vehicle Immobilization"
+    location = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+    related_challan_ids = Column(Text, nullable=True)
+    status = Column(String, nullable=False, default="RECORDED")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    officer = relationship("Officer")
+    vehicle = relationship("Vehicle")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True)
+    user_email = Column(String, nullable=True)
+    user_role = Column(String, nullable=True)
+    action = Column(String, nullable=False, index=True)
+    target_resource = Column(String, nullable=True)
+    target_id = Column(String, nullable=True)
+    details = Column(Text, nullable=True)
+    ip_address = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="SUCCESS")
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    user = relationship("User")
+
+
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(Text, nullable=False)
+    description = Column(String, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True)
+
+

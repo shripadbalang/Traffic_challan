@@ -104,6 +104,18 @@ CREATE INDEX idx_vehicles_plate ON vehicles(plate_number);
 CREATE INDEX idx_challans_vehicle ON challans(vehicle_id);
 CREATE INDEX idx_otp_mobile ON otp_codes(mobile_number);
 
+-- ============ ROW LEVEL SECURITY (RLS) ============
+-- Protect tables against direct PostgREST / anon client key access in Supabase
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE officers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE violation_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE challans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE evidence ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE otp_codes ENABLE ROW LEVEL SECURITY;
+
 -- ============ SEED DATA ============
 
 -- Violation types (fine amounts approximate Maharashtra MV Act 2019 amendment ranges — adjust as needed)
@@ -116,10 +128,14 @@ INSERT INTO violation_types (code, name, base_fine_amount, legal_section) VALUES
 -- Sample admin + officer accounts (password = "Admin@123" / "Officer@123" — hash these properly at signup time;
 -- these INSERTs are placeholders, use the /auth endpoints or a seed script to create real hashed accounts instead)
 
--- Sample mock Vahan vehicles for demo purposes (no owner yet — gets linked at citizen signup)
+-- Sample mock Vahan vehicles for demo purposes (matching test-assets and demo scenarios)
+-- Run `python -m scripts.seed_demo_data` to automatically create citizen accounts, link owners, and seed sample challans.
 INSERT INTO vehicles (plate_number, vehicle_type, model, rto_code) VALUES
-('MH12AB1234', 'motorcycle', 'Honda Activa', 'MH12'),
-('MH14CD5678', 'motorcycle', 'Bajaj Pulsar', 'MH14'),
-('MH31EF9012', 'car', 'Maruti Swift', 'MH31'),
-('MH20GH3456', 'motorcycle', 'TVS Apache', 'MH20'),
-('MH01IJ7890', 'car', 'Hyundai i20', 'MH01');
+('MH12AB1234', 'motorcycle', 'Honda Activa 6G', 'MH12'),
+('MH14CD5678', 'motorcycle', 'Bajaj Pulsar 150', 'MH14'),
+('MH37AB0940', 'motorcycle', 'Royal Enfield Classic 350', 'MH37'),
+('MH01IJ7890', 'car', 'Tata Nexon EV', 'MH01'),
+('MH20GH3456', 'motorcycle', 'TVS Apache RTR 160', 'MH20'),
+('MH31EF9012', 'car', 'Maruti Suzuki Swift', 'MH31'),
+('MH12XY4321', 'motorcycle', 'Hero Splendor Plus', 'MH12')
+ON CONFLICT (plate_number) DO NOTHING;
