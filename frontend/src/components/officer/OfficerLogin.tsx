@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, Mail, ArrowRight, AlertCircle, KeyRound } from 'lucide-react';
+import { Shield, Mail, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
@@ -8,8 +8,9 @@ export const OfficerLogin: React.FC = () => {
   const navigate = useNavigate();
   const { loginOfficerOrAdmin } = useAuth();
 
-  const [email, setEmail] = useState('officer@traffic.gov.in');
-  const [password, setPassword] = useState('Traffic@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -49,12 +50,6 @@ export const OfficerLogin: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickPreset = (presetEmail: string, presetPass: string) => {
-    setEmail(presetEmail);
-    setPassword(presetPass);
-    setErrorMsg(null);
   };
 
   return (
@@ -119,7 +114,7 @@ export const OfficerLogin: React.FC = () => {
             <div className="relative">
               <input
                 id="officer-password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 autoComplete="current-password"
                 value={password}
@@ -127,29 +122,13 @@ export const OfficerLogin: React.FC = () => {
                 placeholder="••••••••••••"
                 className="gov-input pr-10"
               />
-              <Lock className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8] absolute right-3.5 top-3 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Quick Preset Credentials for Testing */}
-          <div className="p-3.5 bg-[#F7F9FC] dark:bg-[#162238]/60 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] text-xs space-y-2">
-            <span className="text-[#172033] dark:text-[#F1F5F9] font-semibold flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-[#D97706] dark:text-[#FBBF24]" /> Authorized Officer Presets:
-            </span>
-            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickPreset('officer@traffic.gov.in', 'Traffic@123')}
-                className="flex-1 py-2 px-2.5 rounded-lg bg-white dark:bg-[#111C2E] hover:bg-[#EFF6FF] dark:hover:bg-[#1E3A8A]/30 text-[#172033] dark:text-[#F1F5F9] hover:text-[#174EA6] dark:hover:text-[#3B82F6] text-[11px] font-semibold border border-[#E2E8F0] dark:border-[#1E293B] transition text-center"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3 text-[#64748B] dark:text-[#94A3B8] hover:text-[#172033] dark:hover:text-[#F1F5F9] focus:outline-none transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                Inspector Vikas
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickPreset('officer1@echallan.gov.in', 'Officer@123')}
-                className="flex-1 py-2 px-2.5 rounded-lg bg-white dark:bg-[#111C2E] hover:bg-[#EFF6FF] dark:hover:bg-[#1E3A8A]/30 text-[#172033] dark:text-[#F1F5F9] hover:text-[#174EA6] dark:hover:text-[#3B82F6] text-[11px] font-semibold border border-[#E2E8F0] dark:border-[#1E293B] transition text-center"
-              >
-                Officer 1
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>

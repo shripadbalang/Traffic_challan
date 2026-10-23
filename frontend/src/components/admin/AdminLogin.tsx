@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Lock, Mail, AlertCircle, KeyRound, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Mail, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
@@ -8,8 +8,9 @@ export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
   const { loginOfficerOrAdmin } = useAuth();
 
-  const [email, setEmail] = useState('admin@echallan.gov.in');
-  const [password, setPassword] = useState('Admin@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -47,12 +48,6 @@ export const AdminLogin: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickPreset = () => {
-    setEmail('admin@echallan.gov.in');
-    setPassword('Admin@123');
-    setErrorMsg(null);
   };
 
   return (
@@ -107,7 +102,7 @@ export const AdminLogin: React.FC = () => {
             </label>
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 autoComplete="current-password"
                 value={password}
@@ -115,27 +110,15 @@ export const AdminLogin: React.FC = () => {
                 placeholder="••••••••••••"
                 className="gov-input pr-10"
               />
-              <Lock className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8] absolute right-3.5 top-3 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Quick preset for testing */}
-          <div className="p-3.5 bg-[#F7F9FC] dark:bg-[#162238]/60 rounded-xl border border-[#E2E8F0] dark:border-[#1E293B] text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[#172033] dark:text-[#F1F5F9] font-semibold flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-[#174EA6] dark:text-[#3B82F6]" /> Authorized Admin Preset:
-              </span>
               <button
                 type="button"
-                onClick={handleQuickPreset}
-                className="text-[11px] font-bold text-[#174EA6] dark:text-[#3B82F6] hover:underline"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3 text-[#64748B] dark:text-[#94A3B8] hover:text-[#172033] dark:hover:text-[#F1F5F9] focus:outline-none transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                Load Credentials
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-1 font-mono">
-              admin@echallan.gov.in • Admin@123
-            </p>
           </div>
 
           <button type="submit" disabled={loading} className="w-full btn-primary py-3 text-sm">
