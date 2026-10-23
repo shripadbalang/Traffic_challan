@@ -24,11 +24,14 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Configure CORS
-allowed_origins = [settings.FRONTEND_URL]
-if settings.ENV in ("development", "test"):
-    for dev_origin in ["http://localhost:5173", "http://localhost:3000"]:
-        if dev_origin not in allowed_origins:
-            allowed_origins.append(dev_origin)
+allowed_origins = [
+    settings.FRONTEND_URL,
+    "https://traffic-challan.pages.dev",
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+# Remove any empty/None entries and duplicate entries while preserving order
+allowed_origins = list(dict.fromkeys([o for o in allowed_origins if o]))
 
 app.add_middleware(
     CORSMiddleware,

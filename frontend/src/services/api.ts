@@ -57,11 +57,31 @@ export function saveStoredAnalytics(analytics: AnalyticsData) {
   localStorage.setItem(ANALYTICS_KEY, JSON.stringify(analytics));
 }
 
+// API Base URL configuration for production vs local dev
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+
+export function buildApiUrl(endpoint: string): string {
+  if (!API_BASE_URL || endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    return endpoint;
+  }
+  const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${API_BASE_URL}${clean}`;
+}
+
+export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  const url = buildApiUrl(input);
+  const headers = new Headers(init?.headers);
+  if (!headers.has('ngrok-skip-browser-warning')) {
+    headers.set('ngrok-skip-browser-warning', 'true');
+  }
+  return fetch(url, { ...init, headers });
+}
+
 // Check if backend API is reachable
 let backendAvailable = false;
 export async function checkBackendHealth(): Promise<boolean> {
   try {
-    const res = await fetch('/health', { method: 'GET', signal: AbortSignal.timeout(1500) });
+    const res = await apiFetch('/health', { method: 'GET', signal: AbortSignal.timeout(1500) });
     backendAvailable = res.ok;
     return res.ok;
   } catch {
@@ -120,7 +140,7 @@ export const api = {
     fullName?: string;
     mobileNumber?: string;
   }): Promise<{ success: boolean; token: string; user: any }> {
-    const res = await fetch('/users/sync-owner-profile', {
+    const res = await apiFetch('/users/sync-owner-profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -147,7 +167,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/vehicles/add', {
+    const res = await apiFetch('/vehicles/add', {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -164,7 +184,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/vehicles/${encodeURIComponent(plateNumber)}`, {
+    const res = await apiFetch(`/vehicles/${encodeURIComponent(plateNumber)}`, {
       method: 'DELETE',
       headers,
     });
@@ -177,13 +197,13 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/vehicles/${plateNumber}/details`, { headers });
+    const res = await apiFetch(`/vehicles/${plateNumber}/details`, { headers });
     return await handleResponseJson(res, 'Failed to fetch vehicle details.');
   },
 
   // Public Receipt Verification (for QR Code scanning)
   async getPublicReceiptVerification(challanId: string): Promise<any> {
-    const res = await fetch(`/payments/verify-public/${challanId}`);
+    const res = await apiFetch(`/payments/verify-public/${challanId}`);
     return await handleResponseJson(res, 'Receipt verification record not found.');
   },
 
@@ -193,7 +213,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/users/profile', { headers });
+    const res = await apiFetch('/users/profile', { headers });
     return await handleResponseJson(res, 'Failed to load user profile.');
   },
 
@@ -203,7 +223,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/users/profile/request-contact-otp', {
+    const res = await apiFetch('/users/profile/request-contact-otp', {
       method: 'POST',
       headers,
       body: JSON.stringify({ identifier }),
@@ -222,7 +242,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/users/profile', {
+    const res = await apiFetch('/users/profile', {
       method: 'PUT',
       headers,
       body: JSON.stringify({
@@ -244,7 +264,7 @@ export const api = {
     password?: string;
   }): Promise<{ success: boolean; message: string; otp?: string }> {
     try {
-      const res = await fetch('/auth/citizen/signup', {
+      const res = await apiFetch('/auth/citizen/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -300,7 +320,7 @@ export const api = {
     vehicleNumber?: string;
     debugOtp?: string;
   }> {
-    const res = await fetch('/auth/owner/request-otp', {
+    const res = await apiFetch('/auth/owner/request-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -328,7 +348,7 @@ export const api = {
     token: string;
     user: any;
   }> {
-    const res = await fetch('/auth/owner/verify-otp', {
+    const res = await apiFetch('/auth/owner/verify-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -364,7 +384,7 @@ export const api = {
     maskedContact: string;
     identifier: string;
   }> {
-    const res = await fetch('/auth/owner/login-initiate', {
+    const res = await apiFetch('/auth/owner/login-initiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier }),
@@ -383,7 +403,7 @@ export const api = {
     token: string;
     user: any;
   }> {
-    const res = await fetch('/auth/owner/login-verify', {
+    const res = await apiFetch('/auth/owner/login-verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier, code }),
@@ -408,7 +428,7 @@ export const api = {
 
   // Owner Portal: Resend OTP
   async ownerResendOtp(identifier: string): Promise<{ message: string }> {
-    const res = await fetch('/auth/owner/resend-otp', {
+    const res = await apiFetch('/auth/owner/resend-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier }),
@@ -423,7 +443,7 @@ export const api = {
     email: string;
     mobileNumber: string;
   }): Promise<{ message: string; email: string; mobileNumber: string }> {
-    const res = await fetch('/auth/owner/register-initiate', {
+    const res = await apiFetch('/auth/owner/register-initiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -447,7 +467,7 @@ export const api = {
     mobileNumber: string;
     code: string;
   }): Promise<{ success: boolean; token: string; user: any }> {
-    const res = await fetch('/auth/owner/register-verify', {
+    const res = await apiFetch('/auth/owner/register-verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -478,7 +498,7 @@ export const api = {
   // Request OTP (Generic)
   async requestOtp(mobileNumber: string): Promise<{ success: boolean; message: string; debugOtp?: string }> {
     try {
-      const res = await fetch('/auth/otp/request', {
+      const res = await apiFetch('/auth/otp/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile_number: mobileNumber }),
@@ -503,7 +523,7 @@ export const api = {
   // Verify OTP
   async verifyOtp(mobileNumber: string, code: string): Promise<{ success: boolean; token: string; user: any }> {
     try {
-      const res = await fetch('/auth/otp/verify', {
+      const res = await apiFetch('/auth/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobile_number: mobileNumber, code }),
@@ -547,7 +567,7 @@ export const api = {
   // Password Login (Officer & Admin)
   async login(identifier: string, password: string): Promise<{ success: boolean; token: string; role: string; user: any }> {
     try {
-      const res = await fetch('/auth/login', {
+      const res = await apiFetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, password }),
@@ -605,7 +625,7 @@ export const api = {
 
   // Dedicated Officer Login
   async officerLogin(email: string, password: string): Promise<any> {
-    const res = await fetch('/auth/officer/login', {
+    const res = await apiFetch('/auth/officer/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
@@ -623,7 +643,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/officer/summary', { headers });
+    const res = await apiFetch('/officer/summary', { headers });
     return await handleResponseJson(res, 'Failed to fetch officer dashboard summary.');
   },
 
@@ -633,7 +653,7 @@ export const api = {
     const headers: HeadersInit = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/officer/violations/capture-and-detect', {
+    const res = await apiFetch('/officer/violations/capture-and-detect', {
       method: 'POST',
       headers,
       body: formData,
@@ -660,7 +680,7 @@ export const api = {
     }
 
     const url = `/officer/challans${query.toString() ? `?${query.toString()}` : ''}`;
-    const res = await fetch(url, { headers });
+    const res = await apiFetch(url, { headers });
     return await handleResponseJson(res, 'Failed to fetch officer challans.');
   },
 
@@ -670,7 +690,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/officer/enforcement/repeat-violators', { headers });
+    const res = await apiFetch('/officer/enforcement/repeat-violators', { headers });
     return await handleResponseJson(res, 'Failed to fetch repeat violators.');
   },
 
@@ -686,7 +706,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/officer/enforcement-action', {
+    const res = await apiFetch('/officer/enforcement-action', {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
@@ -700,7 +720,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/officer/enforcement-actions', { headers });
+    const res = await apiFetch('/officer/enforcement-actions', { headers });
     return await handleResponseJson(res, 'Failed to fetch enforcement history.');
   },
 
@@ -708,7 +728,7 @@ export const api = {
 
   // Dedicated Admin Login
   async adminLogin(email: string, password: string): Promise<any> {
-    const res = await fetch('/auth/admin/login', {
+    const res = await apiFetch('/auth/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier: email.trim().toLowerCase(), password }),
@@ -726,7 +746,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/admin/dashboard-stats', { headers });
+    const res = await apiFetch('/admin/dashboard-stats', { headers });
     return await handleResponseJson(res, 'Failed to fetch dashboard statistics.');
   },
 
@@ -746,7 +766,7 @@ export const api = {
     if (params?.to_date) query.set('to_date', params.to_date);
 
     const url = `/admin/violation-analytics${query.toString() ? `?${query.toString()}` : ''}`;
-    const res = await fetch(url, { headers });
+    const res = await apiFetch(url, { headers });
     return await handleResponseJson(res, 'Failed to fetch violation analytics.');
   },
 
@@ -776,7 +796,7 @@ export const api = {
     if (params?.offset) query.set('offset', String(params.offset));
 
     const url = `/admin/challans${query.toString() ? `?${query.toString()}` : ''}`;
-    const res = await fetch(url, { headers });
+    const res = await apiFetch(url, { headers });
     return await handleResponseJson(res, 'Failed to fetch challans.');
   },
 
@@ -785,7 +805,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/admin/challans/${challanId}`, { headers });
+    const res = await apiFetch(`/admin/challans/${challanId}`, { headers });
     return await handleResponseJson(res, 'Failed to fetch challan details.');
   },
 
@@ -794,7 +814,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/admin/challans/${challanId}/status`, {
+    const res = await apiFetch(`/admin/challans/${challanId}/status`, {
       method: 'PATCH',
       headers,
       body: JSON.stringify({ status, notes }),
@@ -809,7 +829,7 @@ export const api = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const url = search ? `/admin/officers?search=${encodeURIComponent(search)}` : '/admin/officers';
-    const res = await fetch(url, { headers });
+    const res = await apiFetch(url, { headers });
     return await handleResponseJson(res, 'Failed to fetch officers list.');
   },
 
@@ -818,7 +838,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/admin/officers/${officerId}`, { headers });
+    const res = await apiFetch(`/admin/officers/${officerId}`, { headers });
     return await handleResponseJson(res, 'Failed to fetch officer details.');
   },
 
@@ -827,7 +847,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/admin/officers', {
+    const res = await apiFetch('/admin/officers', {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
@@ -840,7 +860,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/admin/officers/${officerId}`, {
+    const res = await apiFetch(`/admin/officers/${officerId}`, {
       method: 'PATCH',
       headers,
       body: JSON.stringify(payload),
@@ -853,7 +873,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/admin/officers/${officerId}`, {
+    const res = await apiFetch(`/admin/officers/${officerId}`, {
       method: 'DELETE',
       headers,
     });
@@ -871,7 +891,7 @@ export const api = {
     query.set('limit', String(limit));
     query.set('offset', String(offset));
 
-    const res = await fetch(`/admin/owners?${query.toString()}`, { headers });
+    const res = await apiFetch(`/admin/owners?${query.toString()}`, { headers });
     return await handleResponseJson(res, 'Failed to fetch owners list.');
   },
 
@@ -880,7 +900,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/admin/owners/${ownerId}`, { headers });
+    const res = await apiFetch(`/admin/owners/${ownerId}`, { headers });
     return await handleResponseJson(res, 'Failed to fetch owner details.');
   },
 
@@ -895,7 +915,7 @@ export const api = {
     query.set('limit', String(limit));
     query.set('offset', String(offset));
 
-    const res = await fetch(`/admin/vehicles?${query.toString()}`, { headers });
+    const res = await apiFetch(`/admin/vehicles?${query.toString()}`, { headers });
     return await handleResponseJson(res, 'Failed to fetch vehicles list.');
   },
 
@@ -904,7 +924,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/admin/vehicles/${encodeURIComponent(plateNumber)}`, { headers });
+    const res = await apiFetch(`/admin/vehicles/${encodeURIComponent(plateNumber)}`, { headers });
     return await handleResponseJson(res, 'Failed to fetch vehicle details.');
   },
 
@@ -920,7 +940,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/admin/vehicles', {
+    const res = await apiFetch('/admin/vehicles', {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
@@ -942,7 +962,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/admin/vehicles/${encodeURIComponent(plateNumber)}`, {
+    const res = await apiFetch(`/admin/vehicles/${encodeURIComponent(plateNumber)}`, {
       method: 'PUT',
       headers,
       body: JSON.stringify(payload),
@@ -955,7 +975,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/admin/vehicles/${encodeURIComponent(plateNumber)}`, {
+    const res = await apiFetch(`/admin/vehicles/${encodeURIComponent(plateNumber)}`, {
       method: 'DELETE',
       headers,
     });
@@ -983,7 +1003,7 @@ export const api = {
     if (params?.limit) query.set('limit', String(params.limit));
     if (params?.offset) query.set('offset', String(params.offset));
 
-    const res = await fetch(`/admin/payments?${query.toString()}`, { headers });
+    const res = await apiFetch(`/admin/payments?${query.toString()}`, { headers });
     return await handleResponseJson(res, 'Failed to fetch payments.');
   },
 
@@ -993,7 +1013,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/admin/ai-monitoring', { headers });
+    const res = await apiFetch('/admin/ai-monitoring', { headers });
     return await handleResponseJson(res, 'Failed to fetch AI monitoring statistics.');
   },
 
@@ -1012,7 +1032,7 @@ export const api = {
     if (params?.to_date) query.set('to_date', params.to_date);
     if (params?.status_filter && params.status_filter !== 'ALL') query.set('status_filter', params.status_filter);
 
-    const res = await fetch(`/admin/reports?${query.toString()}`, { headers });
+    const res = await apiFetch(`/admin/reports?${query.toString()}`, { headers });
     return await handleResponseJson(res, 'Failed to generate report.');
   },
 
@@ -1039,7 +1059,7 @@ export const api = {
     if (params?.limit) query.set('limit', String(params.limit));
     if (params?.offset) query.set('offset', String(params.offset));
 
-    const res = await fetch(`/admin/audit-logs?${query.toString()}`, { headers });
+    const res = await apiFetch(`/admin/audit-logs?${query.toString()}`, { headers });
     return await handleResponseJson(res, 'Failed to fetch audit logs.');
   },
 
@@ -1049,7 +1069,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/admin/settings', { headers });
+    const res = await apiFetch('/admin/settings', { headers });
     return await handleResponseJson(res, 'Failed to fetch system settings.');
   },
 
@@ -1058,7 +1078,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/admin/settings', {
+    const res = await apiFetch('/admin/settings', {
       method: 'PUT',
       headers,
       body: JSON.stringify({ settings }),
@@ -1075,7 +1095,7 @@ export const api = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     try {
-      const res = await fetch('/vehicles/my', { headers });
+      const res = await apiFetch('/vehicles/my', { headers });
       if (res.ok) {
         const data = await res.json();
         return data.map((v: any) => ({
@@ -1103,7 +1123,7 @@ export const api = {
 
     try {
       const url = status && status !== 'ALL' ? `/challans/my?status=${status.toLowerCase()}` : '/challans/my';
-      const res = await fetch(url, { headers });
+      const res = await apiFetch(url, { headers });
       if (res.ok) {
         const data = await res.json();
         return data.map((c: any) => ({
@@ -1134,7 +1154,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/challans/${challanId}`, { headers });
+    const res = await apiFetch(`/challans/${challanId}`, { headers });
     const data = await res.json();
     if (!res.ok) {
       throw new Error(data.detail || 'Failed to fetch challan details.');
@@ -1169,7 +1189,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/payments/initiate', {
+    const res = await apiFetch('/payments/initiate', {
       method: 'POST',
       headers,
       body: JSON.stringify({ challan_id: challanId }),
@@ -1202,7 +1222,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/payments/verify', {
+    const res = await apiFetch('/payments/verify', {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -1242,7 +1262,7 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/payments/receipt/${challanId}`, { headers });
+    const res = await apiFetch(`/payments/receipt/${challanId}`, { headers });
     const data = await res.json();
     if (!res.ok) {
       throw new Error(data.detail || 'Failed to load official receipt.');
@@ -1453,7 +1473,7 @@ export const api = {
       const token = localStorage.getItem('auth_token');
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      const res = await fetch(`/vehicles/${encodeURIComponent(plate)}/summary`, { headers });
+      const res = await apiFetch(`/vehicles/${encodeURIComponent(plate)}/summary`, { headers });
       if (res.ok) {
         return await res.json();
       }

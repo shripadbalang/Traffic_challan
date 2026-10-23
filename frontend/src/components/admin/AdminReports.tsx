@@ -12,7 +12,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
-import { api } from '../../services/api';
+import { api, apiFetch } from '../../services/api';
 
 export const AdminReports: React.FC = () => {
   const [reportType, setReportType] = useState('challans');
@@ -56,10 +56,8 @@ export const AdminReports: React.FC = () => {
     const exportUrl = `/admin/reports/export?${query.toString()}`;
 
     // Trigger download with auth token in fetch or anchor
-    fetch(exportUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    apiFetch(exportUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((res) => {
         if (!res.ok) throw new Error('Download failed');
