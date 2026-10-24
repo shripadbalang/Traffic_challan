@@ -232,7 +232,7 @@ class AnalyticsOverview(BaseModel):
 
 # ---------- Officer Portal Schemas ----------
 class OfficerLoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
@@ -291,7 +291,7 @@ class EnforcementActionOut(BaseModel):
 
 class AdminOfficerCreate(BaseModel):
     full_name: str
-    email: EmailStr
+    email: str
     password: str
     badge_number: str
     station: Optional[str] = None

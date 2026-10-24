@@ -29,7 +29,9 @@ export const AdminOfficers: React.FC = () => {
 
   // Modal States
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createModalError, setCreateModalError] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editModalError, setEditModalError] = useState<string | null>(null);
   const [selectedOfficer, setSelectedOfficer] = useState<AdminOfficer | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [officerDetail, setOfficerDetail] = useState<any | null>(null);
@@ -73,13 +75,48 @@ export const AdminOfficers: React.FC = () => {
   const handleCreateOfficer = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setCreateModalError(null);
     setErrorMsg(null);
     setSuccessMsg(null);
 
+    const cleanName = createForm.full_name.trim();
+    const cleanBadge = createForm.badge_number.trim().toUpperCase();
+    const cleanEmail = createForm.email.trim().toLowerCase();
+    const cleanPassword = createForm.password;
+
+    if (!cleanName) {
+      setCreateModalError('Officer full name is required.');
+      setSubmitting(false);
+      return;
+    }
+    if (!cleanBadge) {
+      setCreateModalError('Badge number is required.');
+      setSubmitting(false);
+      return;
+    }
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setCreateModalError('Please enter a valid official email address containing @.');
+      setSubmitting(false);
+      return;
+    }
+    if (!cleanPassword || cleanPassword.length < 6) {
+      setCreateModalError('Temporary access password must be at least 6 characters.');
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      await api.createAdminOfficer(createForm);
-      setSuccessMsg(`Officer ${createForm.full_name} (${createForm.badge_number}) registered successfully.`);
+      await api.createAdminOfficer({
+        full_name: cleanName,
+        badge_number: cleanBadge,
+        email: cleanEmail,
+        station: createForm.station.trim() || 'Maharashtra Traffic Police',
+        jurisdiction: createForm.jurisdiction.trim() || 'Zone 1',
+        password: cleanPassword,
+      });
+      setSuccessMsg(`Officer ${cleanName} (${cleanBadge}) registered successfully.`);
       setCreateModalOpen(false);
+      setCreateModalError(null);
       setCreateForm({
         full_name: '',
         email: '',
@@ -90,7 +127,7 @@ export const AdminOfficers: React.FC = () => {
       });
       fetchOfficers();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to create officer account.');
+      setCreateModalError(err.message || 'Failed to create officer account.');
     } finally {
       setSubmitting(false);
     }
@@ -98,6 +135,7 @@ export const AdminOfficers: React.FC = () => {
 
   const handleOpenEdit = (officer: AdminOfficer) => {
     setSelectedOfficer(officer);
+    setEditModalError(null);
     setEditForm({
       station: officer.station,
       jurisdiction: officer.jurisdiction,
@@ -112,6 +150,7 @@ export const AdminOfficers: React.FC = () => {
     if (!selectedOfficer) return;
 
     setSubmitting(true);
+    setEditModalError(null);
     setErrorMsg(null);
     setSuccessMsg(null);
 
@@ -125,9 +164,10 @@ export const AdminOfficers: React.FC = () => {
 
       setSuccessMsg(`Officer ${selectedOfficer.badge_number} updated successfully.`);
       setEditModalOpen(false);
+      setEditModalError(null);
       fetchOfficers();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to update officer.');
+      setEditModalError(err.message || 'Failed to update officer.');
     } finally {
       setSubmitting(false);
     }
@@ -368,6 +408,13 @@ export const AdminOfficers: React.FC = () => {
               </button>
             </div>
 
+            {createModalError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-400 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
+                <span className="font-semibold leading-relaxed">{createModalError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleCreateOfficer} className="space-y-3.5 text-xs">
               <div>
                 <label className="block text-[#172033] dark:text-[#F1F5F9] font-bold mb-1">
@@ -488,6 +535,13 @@ export const AdminOfficers: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {editModalError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-400 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
+                <span className="font-semibold leading-relaxed">{editModalError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleUpdateOfficer} className="space-y-3.5 text-xs">
               <div>

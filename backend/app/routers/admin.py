@@ -728,6 +728,24 @@ def create_officer(
     Only Admin can create an officer account and assign credentials.
     """
     clean_email = payload.email.strip().lower()
+    if not clean_email or "@" not in clean_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide a valid official email address containing '@'.",
+        )
+
+    clean_name = payload.full_name.strip()
+    if not clean_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Officer full name cannot be empty.",
+        )
+
+    if not payload.password or len(payload.password) < 6:
+        raise HTTPException(
+            status_code=400,
+            detail="Temporary access password must be at least 6 characters.",
+        )
 
     existing_user = db.query(models.User).filter(models.User.email == clean_email).first()
     if existing_user:
@@ -737,6 +755,12 @@ def create_officer(
         )
 
     clean_badge = payload.badge_number.strip().upper()
+    if not clean_badge:
+        raise HTTPException(
+            status_code=400,
+            detail="Badge number cannot be empty.",
+        )
+
     existing_badge = db.query(models.Officer).filter(models.Officer.badge_number == clean_badge).first()
     if existing_badge:
         raise HTTPException(
@@ -745,7 +769,7 @@ def create_officer(
         )
 
     new_user = models.User(
-        full_name=payload.full_name.strip(),
+        full_name=clean_name,
         email=clean_email,
         password_hash=hash_password(payload.password),
         role=models.UserRole.officer,

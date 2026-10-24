@@ -123,9 +123,18 @@ async function handleResponseJson(res: Response, defaultErrorMsg: string): Promi
         }
       }
     }
-    const errorDetail = data?.detail || data?.message || (res.status === 500
-      ? 'Backend service is currently unreachable (port 8000). Please ensure the FastAPI server is running.'
-      : defaultErrorMsg);
+    let errorDetail: string;
+    if (typeof data?.detail === 'string') {
+      errorDetail = data.detail;
+    } else if (Array.isArray(data?.detail) && data.detail.length > 0) {
+      errorDetail = data.detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join(', ');
+    } else if (typeof data?.message === 'string') {
+      errorDetail = data.message;
+    } else if (res.status === 500) {
+      errorDetail = 'Backend service is currently unreachable (port 8000). Please ensure the FastAPI server is running.';
+    } else {
+      errorDetail = defaultErrorMsg;
+    }
     throw new Error(errorDetail);
   }
   return data;
