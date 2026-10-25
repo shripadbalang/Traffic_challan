@@ -77,6 +77,18 @@ export async function apiFetch(input: string, init?: RequestInit): Promise<Respo
   return fetch(url, { ...init, headers });
 }
 
+// Enforce 10-digit Indian mobile number format across the project
+export function cleanMobile10(val?: string | null): string {
+  if (!val) return '';
+  let digits = val.replace(/\D/g, '');
+  if (digits.startsWith('91') && digits.length > 10) {
+    digits = digits.slice(2);
+  } else if (digits.startsWith('0') && digits.length > 10) {
+    digits = digits.replace(/^0+/, '');
+  }
+  return digits.slice(0, 10);
+}
+
 // Check if backend API is reachable
 let backendAvailable = false;
 export async function checkBackendHealth(): Promise<boolean> {
@@ -181,7 +193,7 @@ export const api = {
       headers,
       body: JSON.stringify({
         vehicle_number: vehicleNumber,
-        registered_mobile: registeredMobile,
+        registered_mobile: cleanMobile10(registeredMobile),
       }),
     });
     return await handleResponseJson(res, 'The vehicle number and registered mobile number do not match our records.');
@@ -232,10 +244,12 @@ export const api = {
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
+    const cleanId = identifier.includes('@') ? identifier.trim().toLowerCase() : cleanMobile10(identifier);
+
     const res = await apiFetch('/users/profile/request-contact-otp', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ identifier }),
+      body: JSON.stringify({ identifier: cleanId }),
     });
     return await handleResponseJson(res, 'Failed to send OTP.');
   },
@@ -257,7 +271,7 @@ export const api = {
       body: JSON.stringify({
         full_name: payload.fullName,
         email: payload.email,
-        mobile_number: payload.mobileNumber,
+        mobile_number: payload.mobileNumber ? cleanMobile10(payload.mobileNumber) : undefined,
         otp_code: payload.otpCode,
       }),
     });
@@ -278,7 +292,7 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           full_name: payload.fullName,
-          mobile_number: payload.mobileNumber,
+          mobile_number: cleanMobile10(payload.mobileNumber),
           email: payload.email,
           plate_number: payload.plateNumber.toUpperCase(),
           password: payload.password || 'Citizen@123',
@@ -334,7 +348,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         vehicle_number: vehicleNumber,
-        mobile_number: mobileNumber,
+        mobile_number: cleanMobile10(mobileNumber),
       }),
     });
     const data = await res.json();
@@ -362,7 +376,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         vehicle_number: vehicleNumber,
-        mobile_number: mobileNumber,
+        mobile_number: cleanMobile10(mobileNumber),
         code,
       }),
     });
@@ -393,10 +407,11 @@ export const api = {
     maskedContact: string;
     identifier: string;
   }> {
+    const cleanId = identifier.includes('@') ? identifier.trim().toLowerCase() : cleanMobile10(identifier);
     const res = await apiFetch('/auth/owner/login-initiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier }),
+      body: JSON.stringify({ identifier: cleanId }),
     });
     const data = await handleResponseJson(res, 'Failed to send login OTP.');
     return {
@@ -412,10 +427,11 @@ export const api = {
     token: string;
     user: any;
   }> {
+    const cleanId = identifier.includes('@') ? identifier.trim().toLowerCase() : cleanMobile10(identifier);
     const res = await apiFetch('/auth/owner/login-verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier, code }),
+      body: JSON.stringify({ identifier: cleanId, code }),
     });
     const data = await handleResponseJson(res, 'Invalid or expired OTP code.');
     if (data.access_token) {
@@ -437,10 +453,11 @@ export const api = {
 
   // Owner Portal: Resend OTP
   async ownerResendOtp(identifier: string): Promise<{ message: string }> {
+    const cleanId = identifier.includes('@') ? identifier.trim().toLowerCase() : cleanMobile10(identifier);
     const res = await apiFetch('/auth/owner/resend-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier }),
+      body: JSON.stringify({ identifier: cleanId }),
     });
     const data = await handleResponseJson(res, 'Failed to resend OTP.');
     return { message: data.message };
@@ -458,7 +475,7 @@ export const api = {
       body: JSON.stringify({
         full_name: payload.fullName,
         email: payload.email,
-        mobile_number: payload.mobileNumber,
+        mobile_number: cleanMobile10(payload.mobileNumber),
       }),
     });
     const data = await handleResponseJson(res, 'Failed to initiate registration.');
@@ -482,7 +499,7 @@ export const api = {
       body: JSON.stringify({
         full_name: payload.fullName,
         email: payload.email,
-        mobile_number: payload.mobileNumber,
+        mobile_number: cleanMobile10(payload.mobileNumber),
         code: payload.code,
       }),
     });
@@ -506,11 +523,12 @@ export const api = {
 
   // Request OTP (Generic)
   async requestOtp(mobileNumber: string): Promise<{ success: boolean; message: string; debugOtp?: string }> {
+    const cleanMob = cleanMobile10(mobileNumber);
     try {
       const res = await apiFetch('/auth/otp/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile_number: mobileNumber }),
+        body: JSON.stringify({ mobile_number: cleanMob }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -521,21 +539,22 @@ export const api = {
     }
 
     const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    sessionStorage.setItem(`otp_${mobileNumber}`, mockOtp);
+    sessionStorage.setItem(`otp_${cleanMob}`, mockOtp);
     return {
       success: true,
-      message: `SMS sent to +91 ${mobileNumber}. (Valid for 5 minutes)`,
+      message: `SMS sent to +91 ${cleanMob}. (Valid for 5 minutes)`,
       debugOtp: mockOtp,
     };
   },
 
   // Verify OTP
   async verifyOtp(mobileNumber: string, code: string): Promise<{ success: boolean; token: string; user: any }> {
+    const cleanMob = cleanMobile10(mobileNumber);
     try {
       const res = await apiFetch('/auth/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile_number: mobileNumber, code }),
+        body: JSON.stringify({ mobile_number: cleanMob, code }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -545,7 +564,7 @@ export const api = {
           user: {
             id: 101,
             fullName: 'Rajesh Sharma',
-            mobileNumber,
+            mobileNumber: cleanMob,
             role: 'citizen',
             isVerified: true,
           },
@@ -952,7 +971,10 @@ export const api = {
     const res = await apiFetch('/admin/vehicles', {
       method: 'POST',
       headers,
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        owner_mobile: cleanMobile10(payload.owner_mobile),
+      }),
     });
     return await handleResponseJson(res, 'Failed to register vehicle.');
   },
@@ -974,7 +996,10 @@ export const api = {
     const res = await apiFetch(`/admin/vehicles/${encodeURIComponent(plateNumber)}`, {
       method: 'PUT',
       headers,
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        owner_mobile: payload.owner_mobile ? cleanMobile10(payload.owner_mobile) : undefined,
+      }),
     });
     return await handleResponseJson(res, 'Failed to update vehicle.');
   },

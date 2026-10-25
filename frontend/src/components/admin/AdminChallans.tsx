@@ -18,7 +18,7 @@ import {
   Cpu,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
-import { api } from '../../services/api';
+import { api, cleanMobile10 } from '../../services/api';
 
 export const AdminChallans: React.FC = () => {
   const [challans, setChallans] = useState<any[]>([]);
@@ -273,7 +273,7 @@ export const AdminChallans: React.FC = () => {
                     <td className="py-3 px-4">
                       <span className="font-semibold text-slate-800 dark:text-slate-200 block">{c.owner_name}</span>
                       {c.owner_mobile && (
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">+91 {c.owner_mobile}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">+91 {cleanMobile10(c.owner_mobile)}</span>
                       )}
                     </td>
                     <td className="py-3 px-4">
@@ -418,7 +418,7 @@ export const AdminChallans: React.FC = () => {
                       {challanDetail.owner?.full_name || 'Unregistered'}
                     </span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                      {challanDetail.owner?.mobile_number ? `+91 ${challanDetail.owner.mobile_number}` : ''}
+                      {challanDetail.owner?.mobile_number ? `+91 ${cleanMobile10(challanDetail.owner.mobile_number)}` : ''}
                     </span>
                   </div>
                   <div>

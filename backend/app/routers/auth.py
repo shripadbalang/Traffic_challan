@@ -284,8 +284,10 @@ def admin_login(request: Request, payload: schemas.LoginRequest, db: Session = D
 def request_owner_otp(request: Request, payload: schemas.OwnerOtpRequest, db: Session = Depends(get_db)):
     plate_clean = re.sub(r"[^a-zA-Z0-9]", "", payload.vehicle_number).upper()
     mobile_clean = re.sub(r"\D", "", payload.mobile_number)
-    if len(mobile_clean) == 12 and mobile_clean.startswith("91"):
+    if mobile_clean.startswith("91") and len(mobile_clean) > 10:
         mobile_clean = mobile_clean[2:]
+    elif mobile_clean.startswith("0") and len(mobile_clean) > 10:
+        mobile_clean = re.sub(r"^0+", "", mobile_clean)
 
     vehicle = (
         db.query(models.Vehicle)
@@ -329,8 +331,10 @@ def request_owner_otp(request: Request, payload: schemas.OwnerOtpRequest, db: Se
 def verify_owner_otp(request: Request, payload: schemas.OwnerOtpVerifyRequest, db: Session = Depends(get_db)):
     plate_clean = re.sub(r"[^a-zA-Z0-9]", "", payload.vehicle_number).upper()
     mobile_clean = re.sub(r"\D", "", payload.mobile_number)
-    if len(mobile_clean) == 12 and mobile_clean.startswith("91"):
+    if mobile_clean.startswith("91") and len(mobile_clean) > 10:
         mobile_clean = mobile_clean[2:]
+    elif mobile_clean.startswith("0") and len(mobile_clean) > 10:
+        mobile_clean = re.sub(r"^0+", "", mobile_clean)
 
     vehicle = db.query(models.Vehicle).filter(models.Vehicle.plate_number == plate_clean).first()
     if not vehicle or not vehicle.owner or vehicle.owner.mobile_number != mobile_clean:
@@ -379,6 +383,10 @@ def verify_owner_otp(request: Request, payload: schemas.OwnerOtpVerifyRequest, d
 @limiter.limit("5/minute")
 def owner_register_initiate(request: Request, payload: schemas.OwnerSignupInitiateRequest, db: Session = Depends(get_db)):
     clean_mob = re.sub(r"\D", "", payload.mobile_number)
+    if clean_mob.startswith("91") and len(clean_mob) > 10:
+        clean_mob = clean_mob[2:]
+    elif clean_mob.startswith("0") and len(clean_mob) > 10:
+        clean_mob = re.sub(r"^0+", "", clean_mob)
     clean_email = payload.email.strip().lower()
 
     # Check if verified account already exists with this email or mobile
@@ -432,6 +440,10 @@ def owner_register_initiate(request: Request, payload: schemas.OwnerSignupInitia
 @limiter.limit("10/minute")
 def owner_register_verify(request: Request, payload: schemas.OwnerSignupVerifyRequest, db: Session = Depends(get_db)):
     clean_mob = re.sub(r"\D", "", payload.mobile_number)
+    if clean_mob.startswith("91") and len(clean_mob) > 10:
+        clean_mob = clean_mob[2:]
+    elif clean_mob.startswith("0") and len(clean_mob) > 10:
+        clean_mob = re.sub(r"^0+", "", clean_mob)
     clean_email = payload.email.strip().lower()
 
     otp = (
@@ -518,8 +530,10 @@ def owner_login_initiate(request: Request, payload: schemas.OwnerLoginInitiateRe
         ).first()
     else:
         clean_mob = re.sub(r"\D", "", raw_id)
-        if len(clean_mob) == 12 and clean_mob.startswith("91"):
+        if clean_mob.startswith("91") and len(clean_mob) > 10:
             clean_mob = clean_mob[2:]
+        elif clean_mob.startswith("0") and len(clean_mob) > 10:
+            clean_mob = re.sub(r"^0+", "", clean_mob)
         clean_id = clean_mob
         user = db.query(models.User).filter(models.User.mobile_number == clean_mob).first()
 
@@ -595,8 +609,10 @@ def owner_login_verify(request: Request, payload: schemas.OwnerLoginVerifyReques
         ).first()
     else:
         clean_mob = re.sub(r"\D", "", raw_id)
-        if len(clean_mob) == 12 and clean_mob.startswith("91"):
+        if clean_mob.startswith("91") and len(clean_mob) > 10:
             clean_mob = clean_mob[2:]
+        elif clean_mob.startswith("0") and len(clean_mob) > 10:
+            clean_mob = re.sub(r"^0+", "", clean_mob)
         clean_id = clean_mob
         user = db.query(models.User).filter(models.User.mobile_number == clean_mob).first()
 

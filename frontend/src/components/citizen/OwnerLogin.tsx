@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Building2, ArrowRight, ShieldCheck, RefreshCw, AlertCircle, Mail } from 'lucide-react';
 import { supabase, isSupabaseConfigured, getDemoUserId } from '../../services/supabaseClient';
-import { api } from '../../services/api';
+import { api, cleanMobile10 } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LanguageSelector } from '../common/LanguageSelector';
@@ -50,14 +50,28 @@ export const OwnerLogin: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getCleanIdentifier = (val: string) => {
+    const raw = val.trim();
+    if (!raw.includes('@')) {
+      return cleanMobile10(raw);
+    }
+    return raw.toLowerCase();
+  };
+
   // Step 1: Submit identifier to receive OTP
   const handleInitiateLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
-    const cleanId = identifier.trim().toLowerCase();
+    const raw = identifier.trim();
 
-    if (!cleanId) {
+    if (!raw) {
       setErrorMsg('Please enter your registered email address or mobile number.');
+      return;
+    }
+
+    const cleanId = getCleanIdentifier(raw);
+    if (!raw.includes('@') && cleanId.length !== 10) {
+      setErrorMsg('Please enter a valid 10-digit mobile number or email address.');
       return;
     }
 
@@ -184,7 +198,7 @@ export const OwnerLogin: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      const cleanId = identifier.trim().toLowerCase();
+      const cleanId = getCleanIdentifier(identifier);
 
       // 1. Primary: Verify via Backend API
       try {
@@ -252,7 +266,7 @@ export const OwnerLogin: React.FC = () => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const cleanId = identifier.trim().toLowerCase();
+      const cleanId = getCleanIdentifier(identifier);
       try {
         await api.ownerResendOtp(cleanId);
       } catch (backendErr) {

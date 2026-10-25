@@ -15,7 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LanguageSelector } from '../common/LanguageSelector';
 import { Vehicle } from '../../types';
-import { api } from '../../services/api';
+import { api, cleanMobile10 } from '../../services/api';
 
 export const MyVehicles: React.FC = () => {
   const { user } = useAuth();
@@ -69,7 +69,7 @@ export const MyVehicles: React.FC = () => {
     setAddSuccess(null);
 
     const cleanPlate = addPlate.trim().toUpperCase();
-    const cleanMob = addMobile.replace(/\D/g, '');
+    const cleanMob = cleanMobile10(addMobile);
 
     if (!cleanPlate) {
       setAddError(t('vehicles.errorInvalidPlate'));
@@ -344,8 +344,8 @@ export const MyVehicles: React.FC = () => {
                     required
                     maxLength={10}
                     value={addMobile}
-                    onChange={(e) => setAddMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    placeholder={t('auth.phonePlaceholder')}
+                    onChange={(e) => setAddMobile(cleanMobile10(e.target.value))}
+                    placeholder="9876543210"
                     className="w-full px-3.5 py-2.5 bg-white dark:bg-[#0D1524] border border-[#CBD5E1] dark:border-[#24344D] rounded-r-lg text-[#172033] dark:text-[#F1F5F9] placeholder-[#64748B] dark:placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 focus:border-[#3B82F6] text-sm font-mono"
                   />
                 </div>

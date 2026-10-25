@@ -103,9 +103,15 @@ def add_vehicle(
     enforcing backend ownership security and linking to authenticated user account.
     """
     plate_clean = re.sub(r"[^a-zA-Z0-9]", "", payload.vehicle_number).upper()
-    mobile_clean = re.sub(r"\D", "", payload.registered_mobile)
-    if len(mobile_clean) == 12 and mobile_clean.startswith("91"):
-        mobile_clean = mobile_clean[2:]
+    def clean_mob_10(v: str) -> str:
+        d = re.sub(r"\D", "", v or "")
+        if d.startswith("91") and len(d) > 10:
+            d = d[2:]
+        elif d.startswith("0") and len(d) > 10:
+            d = re.sub(r"^0+", "", d)
+        return d
+
+    mobile_clean = clean_mob_10(payload.registered_mobile)
 
     # Backend checks vehicle database
     vehicle = db.query(models.Vehicle).filter(models.Vehicle.plate_number == plate_clean).first()
@@ -116,9 +122,7 @@ def add_vehicle(
         )
 
     # Check vehicle's registered mobile number in database
-    veh_mobile = re.sub(r"\D", "", vehicle.registered_mobile or "")
-    if len(veh_mobile) == 12 and veh_mobile.startswith("91"):
-        veh_mobile = veh_mobile[2:]
+    veh_mobile = clean_mob_10(vehicle.registered_mobile or "")
 
     if not veh_mobile or veh_mobile != mobile_clean:
         raise HTTPException(
@@ -127,9 +131,7 @@ def add_vehicle(
         )
 
     # Ensure entered mobile matches authenticated user's registered mobile
-    user_mobile = re.sub(r"\D", "", user.mobile_number or "")
-    if len(user_mobile) == 12 and user_mobile.startswith("91"):
-        user_mobile = user_mobile[2:]
+    user_mobile = clean_mob_10(user.mobile_number or "")
 
     if user_mobile != mobile_clean:
         raise HTTPException(

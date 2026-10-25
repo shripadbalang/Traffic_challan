@@ -12,7 +12,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured, getDemoUserId } from '../../services/supabaseClient';
-import { api } from '../../services/api';
+import { api, cleanMobile10 } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LanguageSelector } from '../common/LanguageSelector';
@@ -69,7 +69,7 @@ export const OwnerCreateAccount: React.FC = () => {
 
     const cleanName = fullName.trim();
     const cleanEmail = email.trim().toLowerCase();
-    const cleanMob = mobileNumber.replace(/\D/g, '');
+    const cleanMob = cleanMobile10(mobileNumber);
 
     if (!cleanName) {
       setErrorMsg('Please enter your full name.');
@@ -209,7 +209,7 @@ export const OwnerCreateAccount: React.FC = () => {
     try {
       const cleanEmail = email.trim().toLowerCase();
       const cleanName = fullName.trim();
-      const cleanMob = mobileNumber.replace(/\D/g, '');
+      const cleanMob = cleanMobile10(mobileNumber);
 
       // 1. Primary: Verify via Backend API
       try {
@@ -468,8 +468,8 @@ export const OwnerCreateAccount: React.FC = () => {
                   autoComplete="tel"
                   maxLength={10}
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder={t('auth.phonePlaceholder')}
+                  onChange={(e) => setMobileNumber(cleanMobile10(e.target.value))}
+                  placeholder="9876543210"
                   className="w-full px-3.5 py-2.5 bg-white dark:bg-[#0D1524] border border-[#CBD5E1] dark:border-[#24344D] rounded-r-lg text-[#172033] dark:text-[#F1F5F9] placeholder-[#64748B] dark:placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 focus:border-[#3B82F6] text-sm font-mono transition"
                 />
                 <Phone className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8] absolute right-3.5 top-3 pointer-events-none" />

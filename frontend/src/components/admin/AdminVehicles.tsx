@@ -95,14 +95,14 @@ export const AdminVehicles: React.FC = () => {
   };
 
   // Clean mobile number helper
-  const cleanMobileNumber = (val: string) => {
-    let digits = val.replace(/\D/g, '');
-    if (digits.startsWith('91') && digits.length === 12) {
+  const cleanMobileNumber = (val?: string | null) => {
+    let digits = (val || '').replace(/\D/g, '');
+    if (digits.startsWith('91') && digits.length > 10) {
       digits = digits.slice(2);
-    } else if (digits.startsWith('0') && digits.length === 11) {
-      digits = digits.slice(1);
+    } else if (digits.startsWith('0') && digits.length > 10) {
+      digits = digits.replace(/^0+/, '');
     }
-    return digits;
+    return digits.slice(0, 10);
   };
 
   // Validate Add Vehicle Form
@@ -391,7 +391,7 @@ export const AdminVehicles: React.FC = () => {
                       <div className="space-y-0.5">
                         <span className="text-[11px] text-slate-700 dark:text-slate-300 font-mono font-semibold flex items-center gap-1">
                           <Phone className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-                          {v.registered_mobile || v.owner_mobile ? `+91 ${v.registered_mobile || v.owner_mobile}` : 'N/A'}
+                          {v.registered_mobile || v.owner_mobile ? `+91 ${cleanMobileNumber(v.registered_mobile || v.owner_mobile)}` : 'N/A'}
                         </span>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 block">
                           RTO Code: {v.rto_code || v.plate_number.slice(0, 4)}
@@ -551,22 +551,26 @@ export const AdminVehicles: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Owner Mobile <span className="text-rose-500">*</span>
                   </label>
-                  <div className="relative">
+                  <div className="relative flex">
+                    <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs font-mono">
+                      +91
+                    </span>
                     <input
-                      type="text"
+                      type="tel"
                       required
-                      placeholder="e.g. 2233433335"
-                      maxLength={15}
+                      placeholder="9876543210"
+                      maxLength={10}
                       value={addForm.owner_mobile}
                       onChange={(e) => {
-                        setAddForm({ ...addForm, owner_mobile: e.target.value });
+                        const cleaned = cleanMobileNumber(e.target.value);
+                        setAddForm({ ...addForm, owner_mobile: cleaned });
                         if (addFormErrors.owner_mobile) {
                           setAddFormErrors({ ...addFormErrors, owner_mobile: '' });
                         }
                       }}
                       className={`w-full px-3.5 py-2.5 font-mono bg-slate-50 dark:bg-slate-800/80 border ${
                         addFormErrors.owner_mobile ? 'border-rose-300 ring-2 ring-rose-100 dark:ring-rose-900/40' : 'border-slate-300 dark:border-slate-700'
-                      } rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-800`}
+                      } rounded-r-xl text-xs font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-800`}
                     />
                     <Phone className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute right-3 top-3 pointer-events-none" />
                   </div>
@@ -770,13 +774,19 @@ export const AdminVehicles: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Registered Mobile
                   </label>
-                  <input
-                    type="text"
-                    maxLength={15}
-                    value={editForm.owner_mobile}
-                    onChange={(e) => setEditForm({ ...editForm, owner_mobile: e.target.value })}
-                    className="w-full px-3.5 py-2.5 font-mono bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-800"
-                  />
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs font-mono">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      placeholder="9876543210"
+                      maxLength={10}
+                      value={editForm.owner_mobile}
+                      onChange={(e) => setEditForm({ ...editForm, owner_mobile: cleanMobileNumber(e.target.value) })}
+                      className="w-full px-3.5 py-2.5 font-mono bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-r-xl text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-800"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">

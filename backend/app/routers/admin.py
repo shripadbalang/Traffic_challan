@@ -1057,11 +1057,11 @@ def validate_and_clean_plate(plate: str) -> str:
     return clean
 
 def validate_and_clean_mobile(mobile: str) -> str:
-    clean = re.sub(r"[\s\-\+]", "", str(mobile or "")).strip()
-    if clean.startswith("91") and len(clean) == 12:
+    clean = re.sub(r"\D", "", str(mobile or "")).strip()
+    if clean.startswith("91") and len(clean) > 10:
         clean = clean[2:]
-    elif clean.startswith("0") and len(clean) == 11:
-        clean = clean[1:]
+    elif clean.startswith("0") and len(clean) > 10:
+        clean = re.sub(r"^0+", "", clean)
     if len(clean) != 10 or not clean.isdigit():
         raise HTTPException(
             status_code=422,

@@ -18,7 +18,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LanguageSelector } from '../common/LanguageSelector';
-import { api } from '../../services/api';
+import { api, cleanMobile10 } from '../../services/api';
 
 export const OwnerProfile: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -160,12 +160,14 @@ export const OwnerProfile: React.FC = () => {
     setModalError('');
     setModalSuccess('');
 
+    let target = newContactValue.trim();
     if (contactModalType === 'mobile') {
-      const cleanMob = newContactValue.replace(/\D/g, '');
+      const cleanMob = cleanMobile10(newContactValue);
       if (cleanMob.length !== 10) {
         setModalError('Please enter a valid 10-digit Indian mobile number.');
         return;
       }
+      target = cleanMob;
     } else {
       if (!newContactValue.includes('@') || !newContactValue.includes('.')) {
         setModalError('Please enter a valid email address.');
@@ -175,7 +177,7 @@ export const OwnerProfile: React.FC = () => {
 
     setModalLoading(true);
     try {
-      const res = await api.requestContactOtp(newContactValue.trim());
+      const res = await api.requestContactOtp(target);
       setModalSuccess(res.message || 'OTP sent successfully.');
       setOtpStep(true);
       setResendCooldown(60);
@@ -200,7 +202,7 @@ export const OwnerProfile: React.FC = () => {
     try {
       const payload: any = { otpCode: otpInput.trim() };
       if (contactModalType === 'mobile') {
-        payload.mobileNumber = newContactValue.trim();
+        payload.mobileNumber = cleanMobile10(newContactValue);
       } else {
         payload.email = newContactValue.trim();
       }
@@ -385,7 +387,7 @@ export const OwnerProfile: React.FC = () => {
                 </div>
                 <div className="text-sm font-bold text-[#172033] dark:text-[#F1F5F9] font-mono mt-0.5">
                   {profileData?.mobileNumber
-                    ? `+91 ${profileData.mobileNumber}`
+                    ? `+91 ${cleanMobile10(profileData.mobileNumber)}`
                     : t('profile.notLinked')}
                 </div>
               </div>
@@ -519,17 +521,32 @@ export const OwnerProfile: React.FC = () => {
                       ? t('profile.newPhoneLabel')
                       : t('profile.newEmailLabel')}
                   </label>
-                  <input
-                    type={contactModalType === 'mobile' ? 'tel' : 'email'}
-                    value={newContactValue}
-                    onChange={(e) => setNewContactValue(e.target.value)}
-                    placeholder={
-                      contactModalType === 'mobile' ? '9820012345' : 'citizen@example.com'
-                    }
-                    maxLength={contactModalType === 'mobile' ? 10 : 80}
-                    required
-                    className="gov-input"
-                  />
+                  {contactModalType === 'mobile' ? (
+                    <div className="flex">
+                      <span className="inline-flex items-center px-3.5 rounded-l-lg border border-r-0 border-[#CBD5E1] dark:border-[#24344D] bg-[#F5F7FB] dark:bg-[#162238] text-[#172033] dark:text-[#F1F5F9] font-semibold text-xs">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        value={newContactValue}
+                        onChange={(e) => setNewContactValue(cleanMobile10(e.target.value))}
+                        placeholder="9876543210"
+                        maxLength={10}
+                        required
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-[#0D1524] border border-[#CBD5E1] dark:border-[#24344D] rounded-r-lg text-[#172033] dark:text-[#F1F5F9] placeholder-[#64748B] dark:placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20 focus:border-[#3B82F6] text-sm font-mono"
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      type="email"
+                      value={newContactValue}
+                      onChange={(e) => setNewContactValue(e.target.value)}
+                      placeholder="citizen@example.com"
+                      maxLength={80}
+                      required
+                      className="gov-input"
+                    />
+                  )}
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-2">

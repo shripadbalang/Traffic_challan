@@ -47,8 +47,10 @@ def request_contact_change_otp(
             raise HTTPException(status_code=400, detail="This email address is already registered to another account.")
     else:
         clean_mob = re.sub(r"\D", "", target)
-        if len(clean_mob) == 12 and clean_mob.startswith("91"):
+        if clean_mob.startswith("91") and len(clean_mob) > 10:
             clean_mob = clean_mob[2:]
+        elif clean_mob.startswith("0") and len(clean_mob) > 10:
+            clean_mob = re.sub(r"^0+", "", clean_mob)
         if len(clean_mob) != 10:
             raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number.")
         existing = db.query(models.User).filter(models.User.mobile_number == clean_mob, models.User.id != user.id).first()
@@ -95,8 +97,10 @@ def update_user_profile(
     # Check mobile number change
     if payload.mobile_number:
         clean_mob = re.sub(r"\D", "", payload.mobile_number)
-        if len(clean_mob) == 12 and clean_mob.startswith("91"):
+        if clean_mob.startswith("91") and len(clean_mob) > 10:
             clean_mob = clean_mob[2:]
+        elif clean_mob.startswith("0") and len(clean_mob) > 10:
+            clean_mob = re.sub(r"^0+", "", clean_mob)
         if clean_mob != user.mobile_number:
             if not payload.otp_code:
                 raise HTTPException(
@@ -172,8 +176,10 @@ def sync_owner_profile(
     clean_mob = None
     if payload.mobile_number:
         clean_mob = re.sub(r"\D", "", payload.mobile_number)
-        if len(clean_mob) == 12 and clean_mob.startswith("91"):
+        if clean_mob.startswith("91") and len(clean_mob) > 10:
             clean_mob = clean_mob[2:]
+        elif clean_mob.startswith("0") and len(clean_mob) > 10:
+            clean_mob = re.sub(r"^0+", "", clean_mob)
         if len(clean_mob) != 10:
             clean_mob = None
 

@@ -15,7 +15,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
-import { api } from '../../services/api';
+import { api, cleanMobile10 } from '../../services/api';
 import { AdminOwner } from '../../types';
 
 export const AdminOwners: React.FC = () => {
@@ -122,7 +122,7 @@ export const AdminOwners: React.FC = () => {
                       <div>
                         <span className="text-[#172033] dark:text-[#F1F5F9] flex items-center gap-1 font-mono text-[11px]">
                           <Phone className="w-3 h-3 text-[#64748B] dark:text-[#94A3B8]" />
-                          {owner.mobile_number ? `+91 ${owner.mobile_number}` : 'N/A'}
+                          {owner.mobile_number ? `+91 ${cleanMobile10(owner.mobile_number)}` : 'N/A'}
                         </span>
                         <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] flex items-center gap-1 mt-0.5">
                           <Mail className="w-3 h-3 text-[#64748B] dark:text-[#94A3B8]" /> {owner.email || 'N/A'}
@@ -218,7 +218,7 @@ export const AdminOwners: React.FC = () => {
                   <div>
                     <span className="text-[11px] text-[#64748B] dark:text-[#94A3B8] block font-medium">Registered Mobile</span>
                     <span className="font-bold text-[#172033] dark:text-[#F1F5F9] font-mono block mt-0.5">
-                      {ownerDetail.mobile_number ? `+91 ${ownerDetail.mobile_number}` : 'N/A'}
+                      {ownerDetail.mobile_number ? `+91 ${cleanMobile10(ownerDetail.mobile_number)}` : 'N/A'}
                     </span>
                   </div>
                   <div>

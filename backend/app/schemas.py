@@ -1,6 +1,32 @@
+import re
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field
+from typing import Optional, List, Any
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+
+def clean_mobile_str(val: Any) -> Any:
+    if isinstance(val, str):
+        cleaned = re.sub(r"\D", "", val)
+        if cleaned.startswith("91") and len(cleaned) > 10:
+            cleaned = cleaned[2:]
+        elif cleaned.startswith("0") and len(cleaned) > 10:
+            cleaned = re.sub(r"^0+", "", cleaned)
+        return cleaned
+    return val
+
+
+def clean_identifier_str(val: Any) -> Any:
+    if isinstance(val, str):
+        val = val.strip()
+        if "@" not in val:
+            cleaned = re.sub(r"\D", "", val)
+            if cleaned.startswith("91") and len(cleaned) > 10:
+                cleaned = cleaned[2:]
+            elif cleaned.startswith("0") and len(cleaned) > 10:
+                cleaned = re.sub(r"^0+", "", cleaned)
+            return cleaned
+        return val.lower()
+    return val
 
 
 # ---------- Auth ----------
@@ -11,11 +37,21 @@ class CitizenSignupRequest(BaseModel):
     email: Optional[EmailStr] = None
     password: str = Field(..., min_length=6)
 
+    @field_validator("mobile_number", mode="before")
+    @classmethod
+    def clean_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
+
 
 class OwnerSignupInitiateRequest(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
     mobile_number: str = Field(..., pattern=r"^[6-9]\d{9}$")
+
+    @field_validator("mobile_number", mode="before")
+    @classmethod
+    def clean_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
 
 
 class OwnerSignupVerifyRequest(BaseModel):
@@ -24,18 +60,38 @@ class OwnerSignupVerifyRequest(BaseModel):
     mobile_number: str = Field(..., pattern=r"^[6-9]\d{9}$")
     code: str = Field(..., min_length=6, max_length=6)
 
+    @field_validator("mobile_number", mode="before")
+    @classmethod
+    def clean_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
+
 
 class OwnerLoginInitiateRequest(BaseModel):
     identifier: str = Field(..., min_length=3)  # Email or 10-digit mobile number
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def clean_id(cls, v: Any) -> Any:
+        return clean_identifier_str(v)
 
 
 class OwnerLoginVerifyRequest(BaseModel):
     identifier: str = Field(..., min_length=3)
     code: str = Field(..., min_length=6, max_length=6)
 
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def clean_id(cls, v: Any) -> Any:
+        return clean_identifier_str(v)
+
 
 class OwnerResendOtpRequest(BaseModel):
     identifier: str = Field(..., min_length=3)
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def clean_id(cls, v: Any) -> Any:
+        return clean_identifier_str(v)
 
 
 class OwnerProfileSyncRequest(BaseModel):
@@ -44,14 +100,29 @@ class OwnerProfileSyncRequest(BaseModel):
     full_name: Optional[str] = None
     mobile_number: Optional[str] = None
 
+    @field_validator("mobile_number", mode="before")
+    @classmethod
+    def clean_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
+
 
 class AddVehicleRequest(BaseModel):
     vehicle_number: str = Field(..., min_length=4, max_length=20)
-    registered_mobile: str = Field(..., min_length=10, max_length=13)
+    registered_mobile: str = Field(..., pattern=r"^\d{10}$")
+
+    @field_validator("registered_mobile", mode="before")
+    @classmethod
+    def clean_reg_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
 
 
 class OtpRequest(BaseModel):
     mobile_number: str
+
+    @field_validator("mobile_number", mode="before")
+    @classmethod
+    def clean_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
 
 
 class OtpVerifyRequest(BaseModel):
@@ -59,10 +130,20 @@ class OtpVerifyRequest(BaseModel):
     code: Optional[str] = None
     otp: Optional[str] = None
 
+    @field_validator("mobile_number", mode="before")
+    @classmethod
+    def clean_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
+
 
 class OwnerOtpRequest(BaseModel):
     vehicle_number: str
     mobile_number: str
+
+    @field_validator("mobile_number", mode="before")
+    @classmethod
+    def clean_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
 
 
 class OwnerOtpVerifyRequest(BaseModel):
@@ -70,9 +151,20 @@ class OwnerOtpVerifyRequest(BaseModel):
     mobile_number: str
     code: str
 
+    @field_validator("mobile_number", mode="before")
+    @classmethod
+    def clean_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
+
 
 class LoginRequest(BaseModel):
     identifier: str  # email or mobile_number
+    password: str
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def clean_id(cls, v: Any) -> Any:
+        return clean_identifier_str(v)
     password: str
 
 
@@ -98,6 +190,11 @@ class UserProfileUpdateRequest(BaseModel):
     email: Optional[EmailStr] = None
     mobile_number: Optional[str] = None
     otp_code: Optional[str] = None
+
+    @field_validator("mobile_number", mode="before")
+    @classmethod
+    def clean_mob(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
 
 
 class VehicleDetailOut(BaseModel):
@@ -335,10 +432,15 @@ class AuditLogOut(BaseModel):
 class AdminCreateVehicleRequest(BaseModel):
     vehicle_number: str = Field(..., min_length=4, max_length=20)
     owner_name: str = Field(..., min_length=1, max_length=100)
-    owner_mobile: str = Field(..., min_length=10, max_length=15)
+    owner_mobile: str = Field(..., pattern=r"^\d{10}$")
     owner_email: EmailStr
     vehicle_model: str = Field(..., min_length=1, max_length=100)
     vehicle_type: Optional[str] = None
+
+    @field_validator("owner_mobile", mode="before")
+    @classmethod
+    def clean_owner_mobile(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
 
 
 class AdminUpdateVehicleRequest(BaseModel):
@@ -347,6 +449,11 @@ class AdminUpdateVehicleRequest(BaseModel):
     owner_email: Optional[EmailStr] = None
     vehicle_model: Optional[str] = None
     vehicle_type: Optional[str] = None
+
+    @field_validator("owner_mobile", mode="before")
+    @classmethod
+    def clean_owner_mobile(cls, v: Any) -> Any:
+        return clean_mobile_str(v)
 
 
 

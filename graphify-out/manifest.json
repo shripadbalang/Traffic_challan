@@ -48,16 +48,16 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "backend/app/routers/admin.py": {
-    "mtime": 1792798696.198197,
-    "seen": 1792800687.0352998,
-    "ast_hash": "bbbeba2b0e3a28f1c3a46694f34683b5",
-    "semantic_hash": "bbbeba2b0e3a28f1c3a46694f34683b5"
+    "mtime": 1792911957.7195542,
+    "seen": 1792912785.1924207,
+    "ast_hash": "29b8e1f08746a845e3c0b0e84d2c1432",
+    "semantic_hash": "29b8e1f08746a845e3c0b0e84d2c1432"
   },
   "backend/app/routers/auth.py": {
-    "mtime": 1792081262.8131008,
-    "seen": 1792793487.9082217,
-    "ast_hash": "dbaa378c0bd4d63d6661914819ada5a6",
-    "semantic_hash": "dbaa378c0bd4d63d6661914819ada5a6"
+    "mtime": 1792912022.4862194,
+    "seen": 1792912785.1924207,
+    "ast_hash": "99f525accdde761fd98aaa7c1bf7b233",
+    "semantic_hash": "99f525accdde761fd98aaa7c1bf7b233"
   },
   "backend/app/routers/challans.py": {
     "mtime": 1790531803.7850704,
@@ -78,10 +78,10 @@
     "semantic_hash": "5f2586171f5b2346e600ed3586570570"
   },
   "backend/app/routers/vehicles.py": {
-    "mtime": 1790273590.2873561,
-    "seen": 1792793487.9082217,
-    "ast_hash": "02a3ea469a5c45738cb368bee66173bd",
-    "semantic_hash": "02a3ea469a5c45738cb368bee66173bd"
+    "mtime": 1792912068.377118,
+    "seen": 1792912785.1924207,
+    "ast_hash": "adeab719c4c775907a9c072c7ee72293",
+    "semantic_hash": "adeab719c4c775907a9c072c7ee72293"
   },
   "backend/app/routers/violations.py": {
     "mtime": 1790531830.3660994,
@@ -90,10 +90,10 @@
     "semantic_hash": "58645ba04d0fc3f3ba699618f85123ff"
   },
   "backend/app/schemas.py": {
-    "mtime": 1792798508.051329,
-    "seen": 1792800687.0368207,
-    "ast_hash": "ca9b6acefff4be30bde160b5f3f4a640",
-    "semantic_hash": "ca9b6acefff4be30bde160b5f3f4a640"
+    "mtime": 1792911920.4038558,
+    "seen": 1792912785.1924207,
+    "ast_hash": "f2c8f9bb4645ee80242d48aa0024845e",
+    "semantic_hash": "f2c8f9bb4645ee80242d48aa0024845e"
   },
   "backend/app/services/__init__.py": {
     "mtime": 1789560149.787085,
@@ -744,10 +744,10 @@
     "semantic_hash": "237c00790ba23bfc7e572613f1c8ec47"
   },
   "frontend/src/services/api.ts": {
-    "mtime": 1792798876.1854606,
-    "seen": 1792800687.0554035,
-    "ast_hash": "080308636701afd055d9fc4eea4f51bb",
-    "semantic_hash": "080308636701afd055d9fc4eea4f51bb"
+    "mtime": 1792912698.7923348,
+    "seen": 1792912785.2015805,
+    "ast_hash": "14dbf852e4710507564c8d743db7dc14",
+    "semantic_hash": "14dbf852e4710507564c8d743db7dc14"
   },
   "frontend/src/services/mockData.ts": {
     "mtime": 1790201798.8439336,
@@ -792,10 +792,10 @@
     "semantic_hash": "8f7964fecf9f8e93c12259476fa09d98"
   },
   "backend/app/routers/users.py": {
-    "mtime": 1790282973.0309777,
-    "seen": 1792793487.9082217,
-    "ast_hash": "4706ed55c7a2db75c56e1789d54fe967",
-    "semantic_hash": "4706ed55c7a2db75c56e1789d54fe967"
+    "mtime": 1792912056.455338,
+    "seen": 1792912785.1924207,
+    "ast_hash": "6eb403292b092ff124a76767b8d5b460",
+    "semantic_hash": "6eb403292b092ff124a76767b8d5b460"
   },
   "backend/scripts/migrate_owner_schema.py": {
     "mtime": 1790248438.564085,
@@ -822,16 +822,16 @@
     "semantic_hash": "b14f3043b4a88f59652d4793f73b54aa"
   },
   "frontend/src/components/citizen/MyVehicles.tsx": {
-    "mtime": 1791906987.9559088,
-    "seen": 1792793487.9165456,
-    "ast_hash": "04473f0ca8035e43e4974cff80b7e53e",
-    "semantic_hash": "04473f0ca8035e43e4974cff80b7e53e"
+    "mtime": 1792912307.9966438,
+    "seen": 1792912785.2015805,
+    "ast_hash": "577d63ae3d6f30264acf9673d4cd4913",
+    "semantic_hash": "577d63ae3d6f30264acf9673d4cd4913"
   },
   "frontend/src/components/citizen/OwnerCreateAccount.tsx": {
-    "mtime": 1792081556.1686153,
-    "seen": 1792793487.9165456,
-    "ast_hash": "07ed312ada22837358854b8c6834d228",
-    "semantic_hash": "07ed312ada22837358854b8c6834d228"
+    "mtime": 1792912273.9941487,
+    "seen": 1792912785.2015805,
+    "ast_hash": "4bcb7dfaf2ce7698a876ff2e2c7e822b",
+    "semantic_hash": "4bcb7dfaf2ce7698a876ff2e2c7e822b"
   },
   "frontend/src/components/citizen/OwnerDashboard.tsx": {
     "mtime": 1791906973.9957094,
@@ -840,16 +840,16 @@
     "semantic_hash": "d59c394481e1f4e47333521ff59f5615"
   },
   "frontend/src/components/citizen/OwnerLogin.tsx": {
-    "mtime": 1792081822.7961788,
-    "seen": 1792793487.9165456,
-    "ast_hash": "1a461eecbd73ce0a8a7246f3b3a83fcd",
-    "semantic_hash": "1a461eecbd73ce0a8a7246f3b3a83fcd"
+    "mtime": 1792912464.266358,
+    "seen": 1792912785.2015805,
+    "ast_hash": "dde4a82ff2509d344f94e894885bd393",
+    "semantic_hash": "dde4a82ff2509d344f94e894885bd393"
   },
   "frontend/src/components/citizen/OwnerProfile.tsx": {
-    "mtime": 1791907008.3493695,
-    "seen": 1792793487.9165456,
-    "ast_hash": "93deddd35cdfd940af7bf417cf0a49a9",
-    "semantic_hash": "93deddd35cdfd940af7bf417cf0a49a9"
+    "mtime": 1792912581.528824,
+    "seen": 1792912785.2015805,
+    "ast_hash": "0b312f7c40a71d734a21c7049484ecc9",
+    "semantic_hash": "0b312f7c40a71d734a21c7049484ecc9"
   },
   "frontend/src/components/citizen/EvidenceModal.tsx": {
     "mtime": 1791904501.8337805,
@@ -918,10 +918,10 @@
     "semantic_hash": "9c1ef86a4ec2e0613004cfa7142aabfc"
   },
   "frontend/src/components/admin/AdminChallans.tsx": {
-    "mtime": 1791905450.0183828,
-    "seen": 1792793487.9165456,
-    "ast_hash": "792348873bb2c9466aa70a2e10e6f9fa",
-    "semantic_hash": "792348873bb2c9466aa70a2e10e6f9fa"
+    "mtime": 1792912527.6462066,
+    "seen": 1792912785.1924207,
+    "ast_hash": "99e821b35bbcb8dbd2e3e70fa3336391",
+    "semantic_hash": "99e821b35bbcb8dbd2e3e70fa3336391"
   },
   "frontend/src/components/admin/AdminLayout.tsx": {
     "mtime": 1791906933.2553675,
@@ -930,8 +930,8 @@
     "semantic_hash": "dc247ea7d762f6881204bb45d42fd113"
   },
   "frontend/src/components/admin/AdminLogin.tsx": {
-    "mtime": 1792791332.546005,
-    "seen": 1792793487.9165456,
+    "mtime": 1792910700.3256302,
+    "seen": 1792912785.1924207,
     "ast_hash": "5838a97bdb63fa74bb2fa6252c92b5e7",
     "semantic_hash": "5838a97bdb63fa74bb2fa6252c92b5e7"
   },
@@ -942,10 +942,10 @@
     "semantic_hash": "e2001bc7690565db1f9d6e1efc5d65b6"
   },
   "frontend/src/components/admin/AdminOwners.tsx": {
-    "mtime": 1791905198.0844219,
-    "seen": 1792793487.9165456,
-    "ast_hash": "f6bf8583f4e13731c6284a242816b3ea",
-    "semantic_hash": "f6bf8583f4e13731c6284a242816b3ea"
+    "mtime": 1792912559.3860435,
+    "seen": 1792912785.1924207,
+    "ast_hash": "6c0a60d70ce5baf333808ec83a656854",
+    "semantic_hash": "6c0a60d70ce5baf333808ec83a656854"
   },
   "frontend/src/components/admin/AdminPayments.tsx": {
     "mtime": 1791905471.9587052,
@@ -966,10 +966,10 @@
     "semantic_hash": "fe2a79b52a82cca326ae47a312d7bf77"
   },
   "frontend/src/components/admin/AdminVehicles.tsx": {
-    "mtime": 1791905406.6018088,
-    "seen": 1792793487.9165456,
-    "ast_hash": "23e1d1d460b4a1f24fca1380c10b4149",
-    "semantic_hash": "23e1d1d460b4a1f24fca1380c10b4149"
+    "mtime": 1792912713.5483449,
+    "seen": 1792912785.1924207,
+    "ast_hash": "52826a0e580cd1d115eefd75344eeefa",
+    "semantic_hash": "52826a0e580cd1d115eefd75344eeefa"
   },
   "frontend/src/components/officer/LiveCameraCapture.tsx": {
     "mtime": 1790426571.445279,
