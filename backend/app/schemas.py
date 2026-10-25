@@ -276,6 +276,9 @@ class DetectionResult(BaseModel):
     boxes: List[DetectionBox] = []
     detected_vehicles: List[DetectedVehicle] = []
     annotated_file_path: Optional[str] = None
+    inference_time_ms: Optional[float] = None
+    ocr_time_ms: Optional[float] = None
+    processing_time_ms: Optional[float] = None
 
 
 # ---------- Challan ----------

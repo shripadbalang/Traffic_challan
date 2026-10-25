@@ -758,6 +758,19 @@ export const OfficerDashboard: React.FC = () => {
               </div>
             )}
 
+            {/* DETECTING SPINNER */}
+            {detecting && (
+              <div className="py-16 text-center space-y-4">
+                <RefreshCw className="w-10 h-10 mx-auto text-[#174EA6] dark:text-[#3B82F6] animate-spin" />
+                <div>
+                  <h4 className="font-bold text-[#172033] dark:text-[#F1F5F9] text-sm">Processing Frame in AI Pipeline</h4>
+                  <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">
+                    Detecting all vehicles in frame, analyzing individual violations (Helmet, Triple Riding, Wrong Side), and recognizing license plates independently...
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* RESULT CASE 1: NO VIOLATION DETECTED */}
             {detectionResult && detectionResult.status === 'NO_VIOLATION' && (
               <div className="p-6 text-center space-y-4 bg-[#F7F9FC] dark:bg-[#162238]/60 border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl">
@@ -765,12 +778,40 @@ export const OfficerDashboard: React.FC = () => {
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-bold text-[#172033] dark:text-[#F1F5F9] text-sm">No traffic violation detected.</h4>
+                  <h4 className="font-bold text-[#172033] dark:text-[#F1F5F9] text-sm">
+                    No traffic violation detected.
+                  </h4>
                   <p className="text-xs text-[#64748B] dark:text-[#94A3B8] max-w-sm mx-auto">
-                    Please review the image and capture another image if required. No challan was created.
+                    {detectionResult.total_vehicles_detected ? `${detectionResult.total_vehicles_detected} vehicle(s) analyzed in frame. ` : ''}
+                    All detected vehicles are compliant with traffic rules. No challan was created.
                   </p>
                 </div>
-                {detectionResult.plate_number && detectionResult.plate_number !== 'Not Detected' && (
+
+                {detectionResult.processing_time_ms && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white dark:bg-[#0D1524] border border-[#E2E8F0] dark:border-[#1E293B] rounded-full text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8]">
+                    <span>⚡ AI Latency: {detectionResult.processing_time_ms}ms</span>
+                    {detectionResult.inference_time_ms && (
+                      <span className="text-[#94A3B8] dark:text-[#64748B]">
+                        (Inference: {detectionResult.inference_time_ms}ms • OCR: {detectionResult.ocr_time_ms}ms)
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {detectionResult.clean_vehicles && detectionResult.clean_vehicles.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-2 pt-2">
+                    {detectionResult.clean_vehicles.map((cv: any, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 bg-white dark:bg-[#0D1524] border border-emerald-200 dark:border-emerald-900 rounded font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400"
+                      >
+                        ✓ {cv.vehicle_type}: {cv.plate_number}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {detectionResult.plate_number && detectionResult.plate_number !== 'Not Detected' && !detectionResult.clean_vehicles && (
                   <div className="inline-block px-3 py-1 bg-white dark:bg-[#0D1524] border border-[#E2E8F0] dark:border-[#1E293B] rounded font-mono text-xs font-bold text-[#172033] dark:text-[#F1F5F9]">
                     Plate Read: {detectionResult.plate_number}
                   </div>
@@ -805,115 +846,208 @@ export const OfficerDashboard: React.FC = () => {
             {/* RESULT CASE 3: VIOLATION DETECTED & CHALLAN GENERATED */}
             {detectionResult && detectionResult.status === 'VIOLATION_DETECTED' && (
               <div className="space-y-4">
-                
-                {/* Vehicle & Owner Header Card */}
-                <div className="p-4 bg-[#F7F9FC] dark:bg-[#162238]/60 border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8] uppercase">
-                      Detected Vehicle Number
-                    </span>
-                    <span className="font-mono font-bold text-sm bg-white dark:bg-[#0D1524] px-2.5 py-0.5 border border-[#E2E8F0] dark:border-[#1E293B] rounded shadow-sm text-[#172033] dark:text-[#F1F5F9]">
-                      {detectionResult.vehicle_number}
-                    </span>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-[#172033] dark:text-[#F1F5F9] pt-1 border-t border-[#E2E8F0] dark:border-[#1E293B]">
-                    <div>
-                      Registered Owner: <strong>{detectionResult.owner_summary.registered_owner}</strong>
-                    </div>
-                    <div>
-                      Vehicle Class: <strong>{detectionResult.vehicle_type}</strong>
-                    </div>
-                    <div>
-                      Unpaid Challans: <strong className="font-mono font-bold text-[#D97706] dark:text-[#FBBF24]">{detectionResult.owner_summary.total_pending_challans}</strong>
-                    </div>
-                    <div>
-                      Enforcement Flag:{' '}
-                      <strong
-                        className={
-                          detectionResult.owner_summary.enforcement_status === 'ACTION REQUIRED'
-                            ? 'text-red-700 dark:text-red-400 font-bold'
-                            : 'text-emerald-700 dark:text-emerald-400 font-bold'
-                        }
-                      >
-                        {detectionResult.owner_summary.enforcement_status}
-                      </strong>
-                    </div>
+                {/* Multi-Vehicle Frame Summary Banner */}
+                <div className="p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div>
+                    <span className="font-bold text-sm text-[#174EA6] dark:text-[#60A5FA] flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Frame Analysis: {detectionResult.total_vehicles_detected || (detectionResult.vehicles?.length || 1)} Vehicle(s) Detected
+                    </span>
+                    <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                      {detectionResult.total_challans_created || detectionResult.violations?.length || 1} violation challan(s) automatically issued • Total fine: ₹{detectionResult.total_fine_amount}
+                    </p>
                   </div>
+                  {detectionResult.processing_time_ms && (
+                    <div className="text-right text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8]">
+                      ⚡ {detectionResult.processing_time_ms}ms
+                      {detectionResult.inference_time_ms && (
+                        <span className="block text-[10px] text-[#94A3B8] dark:text-[#64748B]">
+                          Inf: {detectionResult.inference_time_ms}ms | OCR: {detectionResult.ocr_time_ms}ms
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* Violations List */}
-                <div>
-                  <h4 className="text-xs font-bold text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider mb-2">
-                    Violations Detected ({detectionResult.violations?.length || 0})
-                  </h4>
-                  <div className="space-y-2">
-                    {detectionResult.violations?.map((v: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="p-3 bg-[#FEF2F2] dark:bg-[#7F1D1D]/30 border border-[#FECACA] dark:border-[#DC2626]/40 rounded-xl flex items-center justify-between text-xs"
-                      >
-                        <div className="space-y-0.5">
-                          <div className="font-bold text-[#DC2626] dark:text-[#F87171] flex items-center gap-1.5">
-                            <span className="text-[#DC2626] dark:text-[#F87171] font-bold">✓</span>
-                            {v.violation_name}
-                          </div>
-                          <span className="text-[11px] text-[#DC2626] dark:text-[#F87171]/80 font-medium">
-                            Section: {v.legal_section} • Confidence: <strong>{v.confidence}%</strong>
-                          </span>
+                {/* Per-Vehicle Cards */}
+                {(detectionResult.vehicles && detectionResult.vehicles.length > 0
+                  ? detectionResult.vehicles
+                  : [detectionResult]
+                ).map((veh: any, vIdx: number) => (
+                  <div
+                    key={vIdx}
+                    className="p-4 bg-[#F7F9FC] dark:bg-[#162238]/60 border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl space-y-3"
+                  >
+                    {/* Vehicle Header */}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-[#174EA6] text-white rounded text-[11px] font-bold uppercase">
+                          Vehicle #{veh.vehicle_id || vIdx + 1}: {veh.vehicle_type}
+                        </span>
+                        <span className="font-mono font-bold text-sm bg-white dark:bg-[#0D1524] px-2.5 py-0.5 border border-[#E2E8F0] dark:border-[#1E293B] rounded shadow-sm text-[#172033] dark:text-[#F1F5F9]">
+                          {veh.vehicle_number}
+                        </span>
+                      </div>
+                      <span className="text-xs font-mono font-bold text-[#DC2626] dark:text-[#F87171]">
+                        Fine: ₹{veh.total_fine_amount}
+                      </span>
+                    </div>
+
+                    {/* Owner Details */}
+                    {veh.owner_summary && (
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-[#172033] dark:text-[#F1F5F9] pt-1 border-t border-[#E2E8F0] dark:border-[#1E293B]">
+                        <div>
+                          Registered Owner: <strong>{veh.owner_summary.registered_owner}</strong>
                         </div>
-                        <div className="text-right">
-                          <span className="font-bold text-[#DC2626] dark:text-[#F87171] font-mono text-sm block">
-                            ₹{v.fine_amount}
+                        <div>
+                          Vehicle Class: <strong>{veh.vehicle_type}</strong>
+                        </div>
+                        <div>
+                          Unpaid Challans:{' '}
+                          <strong className="font-mono font-bold text-[#D97706] dark:text-[#FBBF24]">
+                            {veh.owner_summary.total_pending_challans}
+                          </strong>
+                        </div>
+                        <div>
+                          Enforcement Flag:{' '}
+                          <strong
+                            className={
+                              veh.owner_summary.enforcement_status === 'ACTION REQUIRED'
+                                ? 'text-red-700 dark:text-red-400 font-bold'
+                                : 'text-emerald-700 dark:text-emerald-400 font-bold'
+                            }
+                          >
+                            {veh.owner_summary.enforcement_status}
+                          </strong>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Violations for this vehicle */}
+                    <div className="space-y-1.5 pt-1">
+                      {veh.violations?.map((v: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="p-2.5 bg-[#FEF2F2] dark:bg-[#7F1D1D]/30 border border-[#FECACA] dark:border-[#DC2626]/40 rounded-lg flex items-center justify-between text-xs"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-[#DC2626] dark:text-[#F87171] flex items-center gap-1.5">
+                              <span>✓</span>
+                              {v.violation_name}
+                            </div>
+                            <span className="text-[11px] text-[#DC2626] dark:text-[#F87171]/80 font-medium">
+                              Section: {v.legal_section} • Confidence: <strong>{v.confidence}%</strong>
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-[#DC2626] dark:text-[#F87171] font-mono text-sm block">
+                              ₹{v.fine_amount}
+                            </span>
+                            <span className="text-[10px] text-[#DC2626] dark:text-[#F87171]/80 font-mono">
+                              Challan: {v.challan_id ? v.challan_id.slice(0, 8) : '...'}...
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Auto Challan Confirmation for this vehicle */}
+                    <div className="p-3 bg-[#ECFDF5] dark:bg-[#064E3B]/30 border border-[#A7F3D0] dark:border-[#059669]/40 rounded-lg space-y-1.5 text-xs text-[#16856B] dark:text-[#34D399]">
+                      <div className="flex items-center justify-between font-bold text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Official E-Challan Generated (Status: UNPAID)
+                        </span>
+                        <span className="font-mono text-[11px]">
+                          ID: {(veh.primary_challan_id || veh.challan_id || '').slice(0, 8)}...
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-[#172033] dark:text-[#F1F5F9]">
+                        Email Notice:{' '}
+                        {veh.email_status === 'sent' ? (
+                          <span className="inline-flex items-center gap-1 font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded text-[10px]">
+                            <CheckCircle2 className="w-2.5 h-2.5" />
+                            Sent {veh.recipient_email ? `(${veh.recipient_email})` : ''}
                           </span>
-                          <span className="text-[10px] text-[#DC2626] dark:text-[#F87171]/80 font-mono">
-                            Challan: {v.challan_id.slice(0, 8)}...
+                        ) : veh.email_status === 'failed' ? (
+                          <span
+                            className="inline-flex items-center gap-1 font-bold text-rose-800 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-700 px-2 py-0.5 rounded text-[10px]"
+                            title={veh.email_error || 'SMTP delivery failed'}
+                          >
+                            <AlertCircle className="w-2.5 h-2.5" />
+                            Failed to send
                           </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 font-semibold text-[#64748B] dark:text-[#94A3B8] bg-[#F7F9FC] dark:bg-[#162238] border border-[#E2E8F0] dark:border-[#1E293B] px-2 py-0.5 rounded text-[10px]">
+                            Not available (No registered owner email)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Unreadable Vehicles Requiring Verification in the same frame */}
+                {detectionResult.unreadable_vehicles && detectionResult.unreadable_vehicles.length > 0 && (
+                  <div className="p-4 bg-[#FFFBEB] dark:bg-[#451A03]/30 border border-[#FDE68A] dark:border-[#78350F] rounded-xl space-y-3 text-xs">
+                    <div className="flex items-center gap-2 text-[#D97706] dark:text-[#FBBF24] font-bold text-xs">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      {detectionResult.unreadable_vehicles.length} Vehicle(s) Requiring License Plate Verification:
+                    </div>
+                    {detectionResult.unreadable_vehicles.map((uv: any, idx: number) => (
+                      <div key={idx} className="p-3 bg-white dark:bg-[#111C2E] rounded-lg border border-[#FDE68A] dark:border-[#78350F] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-[#172033] dark:text-[#F1F5F9] uppercase">
+                            Vehicle #{uv.vehicle_id || idx + 1}: {uv.vehicle_type}
+                          </span>
+                          <div className="flex gap-1">
+                            {uv.violations?.map((viol: string) => (
+                              <span key={viol} className="px-1.5 py-0.5 bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 rounded text-[10px] font-bold uppercase">
+                                {viol.replace('_', ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={manualPlate}
+                            onChange={(e) => setManualPlate(e.target.value.toUpperCase())}
+                            placeholder="Enter plate (e.g. MH12DE1433)"
+                            className="gov-input flex-1 font-mono font-bold text-xs uppercase py-1.5"
+                          />
+                          <button
+                            type="button"
+                            disabled={!manualPlate.trim() || detecting}
+                            onClick={handleSubmitForDetection}
+                            className="btn-primary px-3 py-1.5 text-xs"
+                          >
+                            <Check className="w-3 h-3" />
+                            {detecting ? 'Issuing...' : 'Confirm Plate & Issue'}
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
 
-                {/* Auto Challan Generation Confirmation Box */}
-                <div className="p-4 bg-[#ECFDF5] dark:bg-[#064E3B]/30 border border-[#A7F3D0] dark:border-[#059669]/40 rounded-xl space-y-2 text-xs text-[#16856B] dark:text-[#34D399]">
-                  <div className="flex items-center gap-2 font-bold text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-[#16856B] dark:text-[#34D399]" />
-                    Official E-Challan Automatically Created (Status: UNPAID)
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[#172033] dark:text-[#F1F5F9]">
-                    <div>
-                      Primary Challan ID: <strong className="font-mono">{detectionResult.primary_challan_id || detectionResult.challan_id}</strong>
-                    </div>
-                    <div>
-                      Total Fine Amount: <strong className="font-mono text-sm">₹{detectionResult.total_fine_amount}</strong>
-                    </div>
-                    <div>
-                      Detecting Officer: <strong className="font-mono">{summary?.officer.badge_number}</strong>
-                    </div>
-                    <div>
-                      Email Notice:{' '}
-                      {detectionResult.email_status === 'sent' ? (
-                        <span className="inline-flex items-center gap-1 font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded text-[11px]">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                          Sent to vehicle owner {detectionResult.recipient_email ? `(${detectionResult.recipient_email})` : ''}
+                {/* Clean Vehicles Notice */}
+                {detectionResult.clean_vehicles && detectionResult.clean_vehicles.length > 0 && (
+                  <div className="p-3 bg-white dark:bg-[#0D1524] border border-emerald-200 dark:border-emerald-900 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
+                    <span className="flex items-center gap-1.5 font-semibold">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      {detectionResult.clean_vehicles.length} vehicle(s) in frame compliant with no traffic violations
+                    </span>
+                    <div className="flex gap-1.5">
+                      {detectionResult.clean_vehicles.map((cv: any, idx: number) => (
+                        <span key={idx} className="font-mono text-[11px] bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                          {cv.vehicle_type}: {cv.plate_number}
                         </span>
-                      ) : detectionResult.email_status === 'failed' ? (
-                        <span
-                          className="inline-flex items-center gap-1 font-bold text-rose-800 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-700 px-2 py-0.5 rounded text-[11px]"
-                          title={detectionResult.email_error || 'SMTP delivery failed'}
-                        >
-                          <AlertCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                          Failed to send {detectionResult.recipient_email ? `(${detectionResult.recipient_email})` : ''}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 font-semibold text-[#64748B] dark:text-[#94A3B8] bg-[#F7F9FC] dark:bg-[#162238] border border-[#E2E8F0] dark:border-[#1E293B] px-2 py-0.5 rounded text-[11px]">
-                          Not available (No owner email)
-                        </span>
-                      )}
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Action after generation */}
                 <button
@@ -921,7 +1055,7 @@ export const OfficerDashboard: React.FC = () => {
                   onClick={() => handleRetake(true)}
                   className="btn-secondary w-full py-2.5 text-center text-xs font-bold"
                 >
-                  Capture Next Violation
+                  Capture Next Frame
                 </button>
 
               </div>
@@ -933,7 +1067,9 @@ export const OfficerDashboard: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-[#D97706] dark:text-[#FBBF24] flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold text-sm text-[#172033] dark:text-[#F1F5F9]">Traffic Violation Detected by AI</h4>
+                    <h4 className="font-bold text-sm text-[#172033] dark:text-[#F1F5F9]">
+                      Traffic Violation Detected by AI ({detectionResult.total_vehicles_detected || 1} Vehicle(s) Detected)
+                    </h4>
                     <p className="text-[#64748B] dark:text-[#94A3B8] mt-1 leading-relaxed">
                       {detectionResult.message}
                     </p>
@@ -949,6 +1085,12 @@ export const OfficerDashboard: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {detectionResult.processing_time_ms && (
+                  <div className="text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8]">
+                    ⚡ AI Latency: {detectionResult.processing_time_ms}ms
+                  </div>
+                )}
 
                 <div className="p-4 bg-white dark:bg-[#111C2E] rounded-xl border border-[#FDE68A] dark:border-[#78350F] space-y-2.5">
                   <label className="block text-xs font-bold text-[#172033] dark:text-[#F1F5F9]">

@@ -164,232 +164,374 @@ async def capture_and_detect_violation(
 
     evidence_url = f"/files/evidence/{saved_filename}"
 
-    # 2. Check if no violation was detected
-    if not detection.violations_found:
+    # 2. Identify all detected vehicles in the captured frame
+    vehicles_list = list(detection.detected_vehicles) if detection.detected_vehicles else []
+    if not vehicles_list and (detection.violations_found or detection.plate_number):
+        vehicles_list = [schemas.DetectedVehicle(
+            vehicle_id=1,
+            vehicle_type="vehicle",
+            plate_number=detection.plate_number,
+            plate_confidence=detection.plate_confidence,
+            violations_found=detection.violations_found,
+        )]
+
+    # 3. Handle manual plate entry override if provided by officer (for unread or single vehicle)
+    if vehicle_plate and vehicle_plate.strip():
+        clean_manual_plate = vehicle_plate.strip().upper()
+        unplated_violators = [v for v in vehicles_list if not v.plate_number and v.violations_found]
+        if unplated_violators:
+            unplated_violators[0].plate_number = clean_manual_plate
+            unplated_violators[0].plate_confidence = 1.0
+        elif len(vehicles_list) == 1:
+            vehicles_list[0].plate_number = clean_manual_plate
+            vehicles_list[0].plate_confidence = 1.0
+
+    # 4. Check if no violation was detected anywhere in the captured frame
+    has_any_violation = any(v.violations_found for v in vehicles_list) or bool(detection.violations_found)
+    if not has_any_violation:
         return {
             "status": "NO_VIOLATION",
-            "message": "No traffic violation detected. Please review the image and capture another image if required.",
+            "message": "No traffic violation detected across all detected vehicles. Please review the image and capture another image if required.",
             "plate_number": detection.plate_number or "Not Detected",
             "evidence_url": evidence_url,
             "detected_vehicles": [v.model_dump() for v in detection.detected_vehicles],
+            "total_vehicles_detected": len(vehicles_list),
+            "inference_time_ms": detection.inference_time_ms,
+            "ocr_time_ms": detection.ocr_time_ms,
+            "processing_time_ms": detection.processing_time_ms,
         }
 
-    # 3. Number Plate Resolution (Manual officer input takes precedence, then OCR plate)
-    plate_to_search = vehicle_plate.strip().upper() if vehicle_plate and vehicle_plate.strip() else None
-    if not plate_to_search:
-        plate_to_search = detection.plate_number
-    if not plate_to_search and detection.detected_vehicles:
-        for v in detection.detected_vehicles:
-            if v.plate_number:
-                plate_to_search = v.plate_number
-                break
+    # 5. Process each detected vehicle independently
+    processed_vehicles = []
+    all_created_challans = []
+    unreadable_plate_vehicles = []
+    duplicates_prevented = []
+    ineligible_vehicles = []
+    clean_vehicles = []
+    total_fine = 0.0
+    recent_cutoff = datetime.utcnow() - timedelta(minutes=5)
 
-    if not plate_to_search:
+    for veh_idx, dv in enumerate(vehicles_list, start=1):
+        if not dv.violations_found:
+            clean_vehicles.append({
+                "vehicle_id": dv.vehicle_id or veh_idx,
+                "vehicle_type": dv.vehicle_type,
+                "plate_number": dv.plate_number or "Clean / Compliant",
+                "bbox": dv.bbox,
+                "status": "NO_VIOLATION",
+            })
+            continue
+
+        # Plate resolution for this violating vehicle
+        plate_to_search = dv.plate_number.strip().upper() if dv.plate_number else None
+        if not plate_to_search and len(vehicles_list) == 1 and detection.plate_number:
+            plate_to_search = detection.plate_number.strip().upper()
+
+        if not plate_to_search:
+            unreadable_plate_vehicles.append({
+                "vehicle_id": dv.vehicle_id or veh_idx,
+                "vehicle_type": dv.vehicle_type,
+                "bbox": dv.bbox,
+                "plate_number": None,
+                "violations": dv.violations_found,
+                "status": "PLATE_NOT_FOUND",
+                "message": f"Traffic violation(s) {[v.replace('_', ' ').title() for v in dv.violations_found]} detected for {dv.vehicle_type}, but license plate could not be clearly read by ANPR OCR. Please verify vehicle plate.",
+            })
+            continue
+
+        # Vehicle database lookup (normalize plate and look up in registry)
+        clean_plate_to_search = re.sub(r"[\s\-]", "", plate_to_search).upper()
+        vehicle, match_confidence = find_vehicle_by_plate(db, clean_plate_to_search)
+        if not vehicle and plate_to_search != clean_plate_to_search:
+            vehicle, match_confidence = find_vehicle_by_plate(db, plate_to_search)
+
+        if not vehicle:
+            # Conservative classification: Unmatched / unregistered plates cannot be assumed to be two-wheelers.
+            vehicle = models.Vehicle(
+                plate_number=clean_plate_to_search,
+                vehicle_type="Unknown",
+                model="Standard Vehicle",
+                rto_code=clean_plate_to_search[:4] if len(clean_plate_to_search) >= 4 else "MH-12",
+            )
+            db.add(vehicle)
+            db.commit()
+            db.refresh(vehicle)
+            match_confidence = 1.0
+
+        # Resolve Owner Record
+        owner = vehicle.owner
+        if not owner and vehicle.owner_id:
+            owner = db.query(models.User).filter(models.User.id == vehicle.owner_id).first()
+        if not owner and vehicle.registered_mobile:
+            owner = db.query(models.User).filter(models.User.mobile_number == vehicle.registered_mobile).first()
+
+        # Violation Eligibility Filter (Enforce vehicle-type rules)
+        eligible_violations, removed_violations = filter_eligible_violations(
+            vehicle.vehicle_type,
+            dv.violations_found,
+        )
+
+        if removed_violations:
+            print(
+                f"[OFFICER VIOLATION POLICY] Filtered out {removed_violations} for vehicle "
+                f"{vehicle.plate_number} of class '{vehicle.vehicle_type}'. Allowed: {eligible_violations}"
+            )
+
+        if not eligible_violations:
+            ineligible_vehicles.append({
+                "vehicle_id": dv.vehicle_id or veh_idx,
+                "plate_number": vehicle.plate_number,
+                "vehicle_type": vehicle.vehicle_type,
+                "status": "INELIGIBLE_VIOLATION",
+                "message": f"Violation(s) {[v.replace('_', ' ').title() for v in removed_violations]} not applicable to {vehicle.vehicle_type} ({vehicle.plate_number}). Helmet and triple riding violations apply only to two-wheelers.",
+            })
+            continue
+
+        veh_challans = []
+        veh_email_results = []
+        veh_fine = 0.0
+
+        print(f"\n[CHALLAN] Processing vehicle {dv.vehicle_id or veh_idx}: {vehicle.plate_number} ({vehicle.vehicle_type})")
+        if owner:
+            print(f"[CHALLAN] Owner found: {owner.full_name}")
+        else:
+            print(f"[CHALLAN] Owner not found in registry for vehicle {vehicle.plate_number}")
+
+        for detected_class in eligible_violations:
+            code = DETECTION_CLASS_TO_VIOLATION_CODE.get(detected_class)
+            if not code:
+                continue
+
+            violation_type = (
+                db.query(models.ViolationType)
+                .filter(models.ViolationType.code == code)
+                .first()
+            )
+            if not violation_type:
+                continue
+
+            # Prevent duplicate challans for same vehicle and violation in 5-minute window
+            existing_duplicate = (
+                db.query(models.Challan)
+                .filter(
+                    models.Challan.vehicle_id == vehicle.id,
+                    models.Challan.violation_type_id == violation_type.id,
+                    models.Challan.officer_id == officer_profile.id,
+                    models.Challan.created_at >= recent_cutoff,
+                )
+                .first()
+            )
+            if existing_duplicate:
+                duplicates_prevented.append({
+                    "challan_id": str(existing_duplicate.id),
+                    "vehicle_number": vehicle.plate_number,
+                    "fine_amount": float(existing_duplicate.fine_amount),
+                    "violation": violation_type.name,
+                    "status": "DUPLICATE_PREVENTED",
+                    "message": f"Notice: A challan for {vehicle.plate_number} ({violation_type.name}) was already issued within the last 5 minutes.",
+                })
+                continue
+
+            combined_confidence = (dv.plate_confidence or detection.plate_confidence or 0.9) * match_confidence
+
+            challan = create_challan(
+                db=db,
+                vehicle=vehicle,
+                violation_type=violation_type,
+                detection_source=models.DetectionSource.ai,
+                ai_confidence_score=combined_confidence,
+                officer_id=officer_profile.id,
+                location=location or officer_profile.jurisdiction or "Field Traffic Patrol",
+                latitude=latitude,
+                longitude=longitude,
+            )
+
+            db.add(
+                models.Evidence(
+                    challan_id=challan.id,
+                    file_path=saved_path,
+                    file_type="image",
+                    ai_annotations_json=json.dumps([b.model_dump() for b in detection.boxes]),
+                )
+            )
+            db.commit()
+            db.refresh(challan)
+
+            # Dispatch email to owner & record delivery status
+            try:
+                notif_res = send_challan_notification(
+                    db=db,
+                    challan=challan,
+                    user=owner,
+                    evidence_url=evidence_url,
+                )
+            except Exception as exc:
+                print(f"[OFFICER NOTIFICATION ERROR] {exc}")
+                notif_res = {
+                    "success": False,
+                    "status": "failed",
+                    "recipient": owner.email if owner else None,
+                    "recipient_email": owner.email if owner else None,
+                    "error": str(exc),
+                }
+            veh_email_results.append(notif_res)
+
+            c_info = {
+                "challan_id": str(challan.id),
+                "violation_code": violation_type.code,
+                "violation_name": violation_type.name,
+                "legal_section": violation_type.legal_section or "Motor Vehicles Act",
+                "fine_amount": float(challan.fine_amount),
+                "confidence": round(combined_confidence * 100, 1),
+                "email_sent": bool(notif_res.get("success", notif_res.get("status") == "sent")),
+                "email_status": notif_res.get("status", "failed"),
+                "recipient_email": notif_res.get("recipient_email") or notif_res.get("recipient"),
+                "email_error": notif_res.get("error"),
+            }
+            veh_challans.append(c_info)
+            all_created_challans.append({**c_info, "vehicle_number": vehicle.plate_number})
+            veh_fine += float(challan.fine_amount)
+            total_fine += float(challan.fine_amount)
+
+        if veh_challans:
+            unpaid_count = (
+                db.query(models.Challan)
+                .filter(
+                    models.Challan.vehicle_id == vehicle.id,
+                    models.Challan.status == models.ChallanStatus.pending,
+                )
+                .count()
+            )
+            primary_email_res = veh_email_results[0] if veh_email_results else {}
+            p_email_status = primary_email_res.get("status", "not_available" if not (owner and owner.email) else "failed")
+            p_recipient_email = primary_email_res.get("recipient_email") or primary_email_res.get("recipient") or (owner.email if owner else None)
+            p_email_error = primary_email_res.get("error")
+            p_email_sent = bool(primary_email_res.get("success", p_email_status == "sent"))
+
+            processed_vehicles.append({
+                "vehicle_id": dv.vehicle_id or veh_idx,
+                "vehicle_number": vehicle.plate_number,
+                "vehicle_type": vehicle.vehicle_type,
+                "model": vehicle.model or "Standard",
+                "primary_challan_id": veh_challans[0]["challan_id"],
+                "challan_id": veh_challans[0]["challan_id"],
+                "violations": veh_challans,
+                "total_fine_amount": veh_fine,
+                "email_sent": p_email_sent,
+                "email_status": p_email_status,
+                "recipient_email": p_recipient_email,
+                "email_error": p_email_error,
+                "owner_summary": {
+                    "registered_owner": owner.full_name if owner else "Unregistered Owner",
+                    "owner_email": owner.email if owner else None,
+                    "total_pending_challans": unpaid_count,
+                    "enforcement_status": "ACTION REQUIRED" if unpaid_count >= 3 else "Normal",
+                },
+                "status": "CHALLAN_GENERATED",
+            })
+
+    # 6. Response Construction
+    if all_created_challans:
+        first_v = processed_vehicles[0]
+        return {
+            "status": "VIOLATION_DETECTED",
+            "success": True,
+            "message": f"{len(all_created_challans)} traffic violation(s) confirmed and E-Challan generated across {len(processed_vehicles)} vehicle(s).",
+            "vehicles": processed_vehicles,
+            "total_vehicles_detected": len(vehicles_list),
+            "total_challans_created": len(all_created_challans),
+            "total_fine_amount": total_fine,
+            "evidence_url": evidence_url,
+            "unreadable_vehicles": unreadable_plate_vehicles,
+            "duplicates_prevented": duplicates_prevented,
+            "clean_vehicles": clean_vehicles,
+            "ineligible_vehicles": ineligible_vehicles,
+            "detected_vehicles": [v.model_dump() for v in detection.detected_vehicles],
+            "inference_time_ms": detection.inference_time_ms,
+            "ocr_time_ms": detection.ocr_time_ms,
+            "processing_time_ms": detection.processing_time_ms,
+            # Single-vehicle backward compatibility fields
+            "challan_id": first_v["challan_id"],
+            "primary_challan_id": first_v["primary_challan_id"],
+            "vehicle_number": first_v["vehicle_number"],
+            "vehicle_type": first_v["vehicle_type"],
+            "model": first_v["model"],
+            "owner_summary": first_v["owner_summary"],
+            "violations": all_created_challans,
+            "email_sent": first_v["email_sent"],
+            "email_status": first_v["email_status"],
+            "recipient_email": first_v["recipient_email"],
+            "email_error": first_v["email_error"],
+        }
+
+    if unreadable_plate_vehicles:
+        all_unreadable_viols = []
+        for uv in unreadable_plate_vehicles:
+            for viol in uv.get("violations", []):
+                if viol not in all_unreadable_viols:
+                    all_unreadable_viols.append(viol)
         return {
             "status": "PLATE_NOT_FOUND",
-            "message": "Traffic violation detected by AI model, but the vehicle license plate could not be clearly read by ANPR OCR. Please verify the vehicle plate to issue the official E-Challan.",
-            "violations_detected": detection.violations_found,
+            "message": "Traffic violation(s) detected by AI model, but vehicle license plate(s) could not be clearly read by ANPR OCR. Please verify the vehicle plate to issue the official E-Challan.",
+            "violations_detected": all_unreadable_viols or detection.violations_found,
             "evidence_url": evidence_url,
-            "ai_boxes": [b.model_dump() for b in detection.boxes],
-        }
-
-    # 4. Vehicle database lookup (normalize plate and look up in registry)
-    clean_plate_to_search = re.sub(r"[\s\-]", "", plate_to_search).upper()
-    vehicle, match_confidence = find_vehicle_by_plate(db, clean_plate_to_search)
-    if not vehicle and plate_to_search != clean_plate_to_search:
-        vehicle, match_confidence = find_vehicle_by_plate(db, plate_to_search)
-
-    if not vehicle:
-        # Conservative classification: Unmatched / unregistered plates cannot be assumed to be two-wheelers.
-        vehicle = models.Vehicle(
-            plate_number=clean_plate_to_search,
-            vehicle_type="Unknown",
-            model="Standard Vehicle",
-            rto_code=clean_plate_to_search[:4] if len(clean_plate_to_search) >= 4 else "MH-12",
-        )
-        db.add(vehicle)
-        db.commit()
-        db.refresh(vehicle)
-        match_confidence = 1.0
-
-    # Resolve Owner Record
-    owner = vehicle.owner
-    if not owner and vehicle.owner_id:
-        owner = db.query(models.User).filter(models.User.id == vehicle.owner_id).first()
-    if not owner and vehicle.registered_mobile:
-        owner = db.query(models.User).filter(models.User.mobile_number == vehicle.registered_mobile).first()
-
-    # 5. Violation Eligibility Filter (Enforce vehicle-type rules)
-    eligible_violations, removed_violations = filter_eligible_violations(
-        vehicle.vehicle_type,
-        detection.violations_found,
-    )
-
-    if removed_violations:
-        print(
-            f"[OFFICER VIOLATION POLICY] Filtered out {removed_violations} for vehicle "
-            f"{vehicle.plate_number} of class '{vehicle.vehicle_type}'. Allowed: {eligible_violations}"
-        )
-
-    if not eligible_violations:
-        return {
-            "status": "NO_VIOLATION",
-            "message": f"Violation(s) {[v.replace('_', ' ').title() for v in removed_violations]} not applicable to {vehicle.vehicle_type} ({vehicle.plate_number}). Helmet and triple riding violations apply only to two-wheelers.",
-            "plate_number": vehicle.plate_number,
-            "vehicle_type": vehicle.vehicle_type,
-            "evidence_url": evidence_url,
+            "unreadable_vehicles": unreadable_plate_vehicles,
+            "total_vehicles_detected": len(vehicles_list),
+            "clean_vehicles": clean_vehicles,
+            "ineligible_vehicles": ineligible_vehicles,
             "detected_vehicles": [v.model_dump() for v in detection.detected_vehicles],
+            "ai_boxes": [b.model_dump() for b in detection.boxes],
+            "inference_time_ms": detection.inference_time_ms,
+            "ocr_time_ms": detection.ocr_time_ms,
+            "processing_time_ms": detection.processing_time_ms,
         }
 
-    # 6. Prevent Duplicate Challans (5-minute window for accidental double submission)
-    recent_cutoff = datetime.utcnow() - timedelta(minutes=5)
-    existing_duplicate = (
-        db.query(models.Challan)
-        .filter(
-            models.Challan.vehicle_id == vehicle.id,
-            models.Challan.officer_id == officer_profile.id,
-            models.Challan.created_at >= recent_cutoff,
-        )
-        .first()
-    )
-
-    if existing_duplicate:
-        # Return existing challan details without generating a duplicate
+    if duplicates_prevented:
+        first_dup = duplicates_prevented[0]
         return {
             "status": "DUPLICATE_PREVENTED",
-            "message": "Notice: A challan for this vehicle was already issued within the last 5 minutes.",
-            "challan_id": str(existing_duplicate.id),
-            "vehicle_number": vehicle.plate_number,
-            "fine_amount": float(existing_duplicate.fine_amount),
-            "violation": existing_duplicate.violation_type.name,
+            "message": first_dup["message"],
+            "challan_id": first_dup["challan_id"],
+            "vehicle_number": first_dup["vehicle_number"],
+            "fine_amount": first_dup["fine_amount"],
+            "violation": first_dup["violation"],
             "evidence_url": evidence_url,
+            "duplicates": duplicates_prevented,
+            "clean_vehicles": clean_vehicles,
+            "total_vehicles_detected": len(vehicles_list),
+            "detected_vehicles": [v.model_dump() for v in detection.detected_vehicles],
+            "inference_time_ms": detection.inference_time_ms,
+            "ocr_time_ms": detection.ocr_time_ms,
+            "processing_time_ms": detection.processing_time_ms,
         }
 
-    # 7. Automatic Challan Generation for eligible detected violations
-    created_challans = []
-    email_delivery_results = []
-    total_fine = 0.0
-
-    print("\n[CHALLAN] Creating challan...")
-    print(f"[CHALLAN] Vehicle: {vehicle.plate_number}")
-    if owner:
-        print(f"[CHALLAN] Owner found: {owner.full_name}")
-        if owner.email:
-            print(f"[CHALLAN] Owner email found: {owner.email}")
-        else:
-            print(f"[CHALLAN] Owner email not found for {owner.full_name}")
-    else:
-        print(f"[CHALLAN] Owner not found in registry for vehicle {vehicle.plate_number}")
-
-    for detected_class in eligible_violations:
-        code = DETECTION_CLASS_TO_VIOLATION_CODE.get(detected_class)
-        if not code:
-            continue
-
-        violation_type = (
-            db.query(models.ViolationType)
-            .filter(models.ViolationType.code == code)
-            .first()
-        )
-        if not violation_type:
-            continue
-
-        combined_confidence = (detection.plate_confidence or 0.9) * match_confidence
-
-        challan = create_challan(
-            db=db,
-            vehicle=vehicle,
-            violation_type=violation_type,
-            detection_source=models.DetectionSource.ai,
-            ai_confidence_score=combined_confidence,
-            officer_id=officer_profile.id,
-            location=location or officer_profile.jurisdiction or "Field Traffic Patrol",
-            latitude=latitude,
-            longitude=longitude,
-        )
-
-        db.add(
-            models.Evidence(
-                challan_id=challan.id,
-                file_path=saved_path,
-                file_type="image",
-                ai_annotations_json=json.dumps([b.model_dump() for b in detection.boxes]),
-            )
-        )
-        db.commit()
-        db.refresh(challan)
-
-        # Dispatch email to owner & record delivery status
-        try:
-            notif_res = send_challan_notification(
-                db=db,
-                challan=challan,
-                user=owner,
-                evidence_url=evidence_url,
-            )
-        except Exception as exc:
-            print(f"[OFFICER NOTIFICATION ERROR] {exc}")
-            notif_res = {
-                "success": False,
-                "status": "failed",
-                "recipient": owner.email if owner else None,
-                "recipient_email": owner.email if owner else None,
-                "error": str(exc),
-            }
-        email_delivery_results.append(notif_res)
-
-        created_challans.append({
-            "challan_id": str(challan.id),
-            "violation_code": violation_type.code,
-            "violation_name": violation_type.name,
-            "legal_section": violation_type.legal_section or "Motor Vehicles Act",
-            "fine_amount": float(challan.fine_amount),
-            "confidence": round(combined_confidence * 100, 1),
-            "email_sent": bool(notif_res.get("success", notif_res.get("status") == "sent")),
-            "email_status": notif_res.get("status", "failed"),
-            "recipient_email": notif_res.get("recipient_email") or notif_res.get("recipient"),
-        })
-        total_fine += float(challan.fine_amount)
-
-    # 7. Owner Privacy: Minimum required information only (never expose passwords, tokens, full phone/email)
-    unpaid_count = (
-        db.query(models.Challan)
-        .filter(
-            models.Challan.vehicle_id == vehicle.id,
-            models.Challan.status == models.ChallanStatus.pending,
-        )
-        .count()
-    )
-
-    owner_display = owner.full_name if owner else "Unregistered Owner"
-    primary_email_res = email_delivery_results[0] if email_delivery_results else {}
-    primary_email_status = primary_email_res.get("status", "not_available" if not (owner and owner.email) else "failed")
-    primary_recipient_email = primary_email_res.get("recipient_email") or primary_email_res.get("recipient") or (owner.email if owner else None)
-    primary_email_error = primary_email_res.get("error")
-    primary_email_sent = bool(primary_email_res.get("success", primary_email_status == "sent"))
+    if ineligible_vehicles:
+        first_inel = ineligible_vehicles[0]
+        return {
+            "status": "NO_VIOLATION",
+            "message": first_inel["message"],
+            "plate_number": first_inel.get("plate_number"),
+            "vehicle_type": first_inel.get("vehicle_type"),
+            "evidence_url": evidence_url,
+            "clean_vehicles": clean_vehicles,
+            "ineligible_vehicles": ineligible_vehicles,
+            "total_vehicles_detected": len(vehicles_list),
+            "detected_vehicles": [v.model_dump() for v in detection.detected_vehicles],
+            "inference_time_ms": detection.inference_time_ms,
+            "ocr_time_ms": detection.ocr_time_ms,
+            "processing_time_ms": detection.processing_time_ms,
+        }
 
     return {
-        "status": "VIOLATION_DETECTED",
-        "success": True,
-        "challan_id": created_challans[0]["challan_id"] if created_challans else None,
-        "email_sent": primary_email_sent,
-        "email_status": primary_email_status,
-        "recipient_email": primary_recipient_email,
-        "email_error": primary_email_error,
-        "message": f"{len(created_challans)} traffic violation(s) confirmed and E-Challan generated.",
-        "vehicle_number": vehicle.plate_number,
-        "vehicle_type": vehicle.vehicle_type,
-        "model": vehicle.model or "Standard",
-        "owner_summary": {
-            "registered_owner": owner_display,
-            "owner_email": owner.email if owner else None,
-            "total_pending_challans": unpaid_count,
-            "enforcement_status": "ACTION REQUIRED" if unpaid_count >= 3 else "Normal",
-        },
-        "violations": created_challans,
-        "total_fine_amount": total_fine,
+        "status": "NO_VIOLATION",
+        "message": "No traffic violation detected across all detected vehicles. Please review the image and capture another image if required.",
         "evidence_url": evidence_url,
-        "primary_challan_id": created_challans[0]["challan_id"] if created_challans else None,
+        "clean_vehicles": clean_vehicles,
+        "total_vehicles_detected": len(vehicles_list),
+        "detected_vehicles": [v.model_dump() for v in detection.detected_vehicles],
+        "inference_time_ms": detection.inference_time_ms,
+        "ocr_time_ms": detection.ocr_time_ms,
+        "processing_time_ms": detection.processing_time_ms,
     }
 
 

@@ -1300,13 +1300,14 @@ def _associate_vehicles_plates_violations(
     for h in helmet_boxes:
         h_box = h.get("bbox", [])
         hx = (h_box[0] + h_box[2]) / 2.0
+        hy = (h_box[1] + h_box[3]) / 2.0
         best_v = None
         best_dist = 999999.0
         for veh in detected_vehicles:
             if veh["vehicle_type"] == "motorcycle":
                 vx1, vy1, vx2, vy2 = veh["bbox"]
-                if (vx1 - 50) <= hx <= (vx2 + 50):
-                    dist = abs(hx - (vx1 + vx2) / 2.0)
+                if (vx1 - 60) <= hx <= (vx2 + 60) and (vy1 - 120) <= hy <= (vy2 + 60):
+                    dist = abs(hx - (vx1 + vx2) / 2.0) + abs(hy - vy1) * 0.5
                     if dist < best_dist:
                         best_dist = dist
                         best_v = veh
@@ -1329,7 +1330,8 @@ def _associate_vehicles_plates_violations(
             best_v["violations_found"].append("wrong_side")
 
     # Fallback: if violations were found but not associated with any vehicle,
-    # and exactly one vehicle with a plate exists, assign the violations to that vehicle
+    # and exactly one vehicle overall exists in the frame with a plate, assign to that vehicle.
+    # When multiple vehicles are present, never cross-contaminate detections across vehicles.
     all_violations = []
     if helmet_boxes:
         all_violations.append("no_helmet")
@@ -1339,7 +1341,7 @@ def _associate_vehicles_plates_violations(
         all_violations.append("triple_riding")
 
     vehicles_with_plates = [v for v in detected_vehicles if v["plate_number"]]
-    if len(vehicles_with_plates) == 1 and all_violations:
+    if len(detected_vehicles) == 1 and len(vehicles_with_plates) == 1 and all_violations:
         target_v = vehicles_with_plates[0]
         v_type = (target_v.get("vehicle_type") or "").lower()
         for viol in all_violations:
@@ -1360,69 +1362,75 @@ def _associate_vehicles_plates_violations(
 # ============================================================
 
 def _detect_triple_riding(
-    image: np.ndarray
+    image: np.ndarray,
+    precomputed_motorcycles: Optional[List[Dict[str, Any]]] = None,
+    precomputed_people: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
 
-    model = get_general_model()
+    if precomputed_motorcycles is not None and precomputed_people is not None:
+        motorcycles = precomputed_motorcycles
+        people = precomputed_people
+    else:
+        model = get_general_model()
 
-    if model is None:
-        return []
+        if model is None:
+            return []
 
-    results = model.predict(
-        image,
-        conf=getattr(settings, "TRIPLE_RIDING_CONFIDENCE_THRESHOLD", 0.30),
-        verbose=False,
-    )
-
-    if not results:
-        return []
-
-    result = results[0]
-
-    if result.boxes is None:
-        return []
-
-    motorcycles = []
-    people = []
-
-    for box in result.boxes:
-
-        cls_id = int(
-            box.cls[0]
+        results = model.predict(
+            image,
+            conf=getattr(settings, "TRIPLE_RIDING_CONFIDENCE_THRESHOLD", 0.30),
+            verbose=False,
         )
 
-        confidence = float(
-            box.conf[0]
-        )
+        if not results:
+            return []
 
-        coords = (
-            box.xyxy[0]
-            .tolist()
-        )
+        result = results[0]
 
-        if (
-            cls_id
-            == settings.MOTORCYCLE_CLASS_ID
-        ):
+        if result.boxes is None:
+            return []
 
-            motorcycles.append(
-                {
-                    "bbox": coords,
-                    "confidence": confidence,
-                }
+        motorcycles = []
+        people = []
+
+        for box in result.boxes:
+
+            cls_id = int(
+                box.cls[0]
             )
 
-        elif (
-            cls_id
-            == settings.PERSON_CLASS_ID
-        ):
-
-            people.append(
-                {
-                    "bbox": coords,
-                    "confidence": confidence,
-                }
+            confidence = float(
+                box.conf[0]
             )
+
+            coords = (
+                box.xyxy[0]
+                .tolist()
+            )
+
+            if (
+                cls_id
+                == settings.MOTORCYCLE_CLASS_ID
+            ):
+
+                motorcycles.append(
+                    {
+                        "bbox": coords,
+                        "confidence": confidence,
+                    }
+                )
+
+            elif (
+                cls_id
+                == settings.PERSON_CLASS_ID
+            ):
+
+                people.append(
+                    {
+                        "bbox": coords,
+                        "confidence": confidence,
+                    }
+                )
 
     violations = []
 
@@ -1501,6 +1509,7 @@ def _detect_triple_riding(
 def _detect_wrong_side(
     image: np.ndarray,
     detected_vehicles: List[Dict[str, Any]],
+    precomputed_people: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Intelligent Wrong-Side Driving Detection:
@@ -1517,16 +1526,19 @@ def _detect_wrong_side(
     ws_model = get_wrong_side_model()
 
     # 1. Detect persons to identify active riders on two-wheelers
-    people = []
-    if gen_model is not None:
-        gen_res = gen_model.predict(image, conf=0.25, verbose=False)
-        if gen_res and gen_res[0].boxes is not None:
-            for b in gen_res[0].boxes:
-                if int(b.cls[0]) == settings.PERSON_CLASS_ID:
-                    people.append({
-                        "bbox": [float(x) for x in b.xyxy[0].tolist()],
-                        "confidence": float(b.conf[0]),
-                    })
+    if precomputed_people is not None:
+        people = precomputed_people
+    else:
+        people = []
+        if gen_model is not None:
+            gen_res = gen_model.predict(image, conf=0.25, verbose=False)
+            if gen_res and gen_res[0].boxes is not None:
+                for b in gen_res[0].boxes:
+                    if int(b.cls[0]) == settings.PERSON_CLASS_ID:
+                        people.append({
+                            "bbox": [float(x) for x in b.xyxy[0].tolist()],
+                            "confidence": float(b.conf[0]),
+                        })
 
     # Associate people to vehicles to filter for active (occupied) vehicles
     active_vehicles = []
@@ -1731,15 +1743,51 @@ def process_image(
             "Could not decode image."
         )
 
+    t_start = time.perf_counter()
+    inf_start = time.perf_counter()
+
     violations_found = []
     boxes = []
 
     # ========================================================
-    # 1. DETECT VEHICLES & TRIPLE RIDING
+    # 1. DETECT VEHICLES & TRIPLE RIDING (Single-pass general model)
     # ========================================================
 
-    detected_vehicle_boxes = _detect_vehicles(image)
-    triple_results = _detect_triple_riding(image)
+    gen_model = get_general_model()
+    detected_vehicle_boxes = []
+    precomputed_motorcycles = []
+    precomputed_people = []
+
+    if gen_model is not None:
+        gen_results = gen_model.predict(image, conf=0.25, verbose=False)
+        if gen_results and gen_results[0].boxes is not None:
+            for box in gen_results[0].boxes:
+                cls_id = int(box.cls[0])
+                confidence = float(box.conf[0])
+                coords = [float(x) for x in box.xyxy[0].tolist()]
+
+                if cls_id in VEHICLE_CLASS_NAMES:
+                    detected_vehicle_boxes.append({
+                        "class_name": VEHICLE_CLASS_NAMES[cls_id],
+                        "confidence": confidence,
+                        "bbox": coords,
+                    })
+                    if cls_id == settings.MOTORCYCLE_CLASS_ID and confidence >= getattr(settings, "TRIPLE_RIDING_CONFIDENCE_THRESHOLD", 0.30):
+                        precomputed_motorcycles.append({
+                            "bbox": coords,
+                            "confidence": confidence,
+                        })
+                elif cls_id == settings.PERSON_CLASS_ID:
+                    precomputed_people.append({
+                        "bbox": coords,
+                        "confidence": confidence,
+                    })
+
+    triple_results = _detect_triple_riding(
+        image,
+        precomputed_motorcycles=precomputed_motorcycles,
+        precomputed_people=precomputed_people,
+    )
 
     for item in triple_results:
         boxes.append(item)
@@ -1786,7 +1834,11 @@ def process_image(
     # 3. WRONG SIDE VIOLATION DETECTION
     # ========================================================
 
-    wrong_side_boxes = _detect_wrong_side(image, detected_vehicle_boxes)
+    wrong_side_boxes = _detect_wrong_side(
+        image,
+        detected_vehicle_boxes,
+        precomputed_people=precomputed_people,
+    )
     for wsb in wrong_side_boxes:
         boxes.append(wsb)
         if "wrong_side" not in violations_found:
@@ -1795,6 +1847,10 @@ def process_image(
     # ========================================================
     # 4. NUMBER PLATE DETECTION & RECOGNITION
     # ========================================================
+
+    inf_end = time.perf_counter()
+    inference_time_ms = round((inf_end - inf_start) * 1000, 2)
+    ocr_start = time.perf_counter()
 
     recognized_plates = []
 
@@ -2029,6 +2085,9 @@ def process_image(
                 if recognized_plates:
                     break
 
+    ocr_end = time.perf_counter()
+    ocr_time_ms = round((ocr_end - ocr_start) * 1000, 2)
+
     # Add plate boxes to boxes list
     for p in recognized_plates:
         boxes.append({
@@ -2079,6 +2138,8 @@ def process_image(
     # 7. RESULT
     # ========================================================
 
+    total_time_ms = round((time.perf_counter() - t_start) * 1000, 2)
+
     return {
         "violations_found": violations_found,
         "plate_number": primary_plate_number,
@@ -2086,6 +2147,9 @@ def process_image(
         "boxes": boxes,
         "detected_vehicles": detected_vehicles,
         "annotated_file_path": None,
+        "inference_time_ms": inference_time_ms,
+        "ocr_time_ms": ocr_time_ms,
+        "processing_time_ms": total_time_ms,
     }
 
 
