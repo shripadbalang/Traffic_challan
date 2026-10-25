@@ -26,6 +26,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Configure CORS
 allowed_origins = [
     settings.FRONTEND_URL,
+    "https://traffic.balangshripad.dev",
+    "http://traffic.balangshripad.dev",
     "https://traffic-challan.pages.dev",
     "http://localhost:5173",
     "http://localhost:3000",
@@ -36,6 +38,7 @@ allowed_origins = list(dict.fromkeys([o for o in allowed_origins if o]))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"https?://.*(balangshripad\.dev|pages\.dev)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

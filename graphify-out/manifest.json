@@ -30,10 +30,10 @@
     "semantic_hash": "a5e93e6f77b0a562c014a89f431537fa"
   },
   "backend/app/main.py": {
-    "mtime": 1792793364.3014498,
-    "seen": 1792793487.9082217,
-    "ast_hash": "c9edc52026d7728be9fa60aac6485e0f",
-    "semantic_hash": "c9edc52026d7728be9fa60aac6485e0f"
+    "mtime": 1792914533.3202684,
+    "seen": 1792915165.0872915,
+    "ast_hash": "ad2b5285267b4a403a79b9e7358c3991",
+    "semantic_hash": "ad2b5285267b4a403a79b9e7358c3991"
   },
   "backend/app/models.py": {
     "mtime": 1790363394.2102911,
@@ -1774,11 +1774,5 @@
     "seen": 1792793487.915041,
     "ast_hash": "e2f9df7ffd53ae553075cc3aeb355a4c",
     "semantic_hash": "e2f9df7ffd53ae553075cc3aeb355a4c"
-  },
-  "env.txt": {
-    "mtime": 1792351302.3897893,
-    "seen": 1792791420.0690424,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": ""
   }
 }
