@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Camera,
   Upload,
@@ -195,6 +195,7 @@ export const OfficerDashboard: React.FC = () => {
   };
 
   // Handle File Selection (Camera or Upload)
+  // Handle File Selection (Camera or Upload)
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -204,6 +205,8 @@ export const OfficerDashboard: React.FC = () => {
       setCaptureSource('upload');
       setDetectionResult(null);
       setDetectionError(null);
+      // Automatically detect all vehicles and violations in uploaded photo
+      handleSubmitForDetection(file);
     }
   };
 
@@ -213,9 +216,20 @@ export const OfficerDashboard: React.FC = () => {
     setCapturedPreview(previewUrl);
     setIsLiveCameraOpen(false);
     setCaptureSource('live');
-    setDetectionResult(null);
-    setDetectionError(null);
+    handleSubmitForDetection(file);
   };
+
+  // Handle Live Camera Continuous Detection Callback
+  const handleLiveDetectionResult = useCallback((res: any, previewUrl: string, file: File) => {
+    setDetectionResult(res);
+    setCapturedPreview(previewUrl);
+    setCapturedFile(file);
+    setDetectionError(null);
+    if (res.status === 'VIOLATION_DETECTED') {
+      fetchSummary();
+      fetchChallans();
+    }
+  }, []);
 
   // Retake photo (optionally re-open live camera stream)
   const handleRetake = (reopenLive: boolean = false) => {
@@ -242,21 +256,22 @@ export const OfficerDashboard: React.FC = () => {
       if (samplePlate) setManualPlate(samplePlate);
       setDetectionResult(null);
       setDetectionError(null);
+      handleSubmitForDetection(file);
     } catch (err: any) {
       console.error('Failed to load sample', err);
     }
   };
 
-  // Submit to Real AI Detection
-  const handleSubmitForDetection = async () => {
-    if (!capturedFile) return;
+  // Submit to Real AI Detection (Manual or Automatic)
+  const handleSubmitForDetection = async (fileOverride?: any) => {
+    const fileToSubmit = (fileOverride instanceof File) ? fileOverride : capturedFile;
+    if (!fileToSubmit) return;
 
     setDetecting(true);
     setDetectionError(null);
-    setDetectionResult(null);
 
     const formData = new FormData();
-    formData.append('file', capturedFile);
+    formData.append('file', fileToSubmit);
     formData.append('location', patrolLocation);
     if (manualPlate.trim()) {
       formData.append('vehicle_plate', manualPlate.trim().toUpperCase());
@@ -267,6 +282,7 @@ export const OfficerDashboard: React.FC = () => {
       setDetectionResult(res);
       // Refresh summary statistics after challan generation
       fetchSummary();
+      fetchChallans();
     } catch (err: any) {
       setDetectionError(err.message || 'AI detection failed. Please check connection and try again.');
     } finally {
@@ -530,103 +546,98 @@ export const OfficerDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Empty Capture Zone or Live Camera Viewfinder */}
-            {!capturedPreview && (
-              <>
-                {isLiveCameraOpen ? (
-                  <LiveCameraCapture
-                    onCapture={handleLiveCapture}
-                    onClose={() => setIsLiveCameraOpen(false)}
-                    locationName={patrolLocation}
-                  />
-                ) : (
-                  <div className="border-2 border-dashed border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 text-center bg-[#F7F9FC] dark:bg-[#162238]/60 hover:bg-[#F1F5F9] dark:hover:bg-[#162238] transition space-y-4">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#174EA6] to-[#0284C7] text-white mx-auto flex items-center justify-center shadow-md">
-                      <Camera className="w-7 h-7" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-[#172033] dark:text-[#F1F5F9] text-base">Capture Live Violation Image</h4>
-                      <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1 max-w-sm mx-auto">
-                        Open the live patrol camera to click a real-time violation photo, or upload existing photographic evidence.
-                      </p>
-                    </div>
+            {/* Live Camera Viewfinder OR Photo Upload / Review View */}
+            {isLiveCameraOpen ? (
+              <LiveCameraCapture
+                onCapture={handleLiveCapture}
+                onLiveDetectionResult={handleLiveDetectionResult}
+                onClose={() => setIsLiveCameraOpen(false)}
+                locationName={patrolLocation}
+                manualPlate={manualPlate}
+              />
+            ) : !capturedPreview ? (
+              <div className="border-2 border-dashed border-[#E2E8F0] dark:border-[#1E293B] rounded-xl p-6 text-center bg-[#F7F9FC] dark:bg-[#162238]/60 hover:bg-[#F1F5F9] dark:hover:bg-[#162238] transition space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#174EA6] to-[#0284C7] text-white mx-auto flex items-center justify-center shadow-md">
+                  <Camera className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-[#172033] dark:text-[#F1F5F9] text-base">Capture Live Violation Image</h4>
+                  <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1 max-w-sm mx-auto">
+                    Open the live patrol camera for automatic real-time detection, or upload existing photographic evidence.
+                  </p>
+                </div>
 
-                    {/* Primary Action Buttons */}
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
-                      {/* 1. Live Camera Button */}
-                      <button
-                        type="button"
-                        onClick={() => setIsLiveCameraOpen(true)}
-                        className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 active:scale-95 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-md transition"
-                      >
-                        <span className="relative flex h-2.5 w-2.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
-                        </span>
-                        <Camera className="w-4 h-4 text-amber-200" />
-                        Open Live Camera
-                      </button>
+                {/* Primary Action Buttons */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+                  {/* 1. Live Camera Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsLiveCameraOpen(true)}
+                    className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 active:scale-95 text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-md transition"
+                  >
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+                    </span>
+                    <Camera className="w-4 h-4 text-amber-200" />
+                    Open Live Camera
+                  </button>
 
-                      {/* 2. Device System Camera */}
-                      <button
-                        type="button"
-                        onClick={() => cameraInputRef.current?.click()}
-                        className="btn-secondary w-full sm:w-auto px-4 py-3 text-xs"
-                      >
-                        <Video className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />
-                        Device Camera App
-                      </button>
+                  {/* 2. Device System Camera */}
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="btn-secondary w-full sm:w-auto px-4 py-3 text-xs"
+                  >
+                    <Video className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />
+                    Device Camera App
+                  </button>
 
-                      {/* 3. Upload from Gallery */}
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="btn-secondary w-full sm:w-auto px-4 py-3 text-xs"
-                      >
-                        <Upload className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />
-                        Upload Photo
-                      </button>
-                    </div>
+                  {/* 3. Upload from Gallery */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn-secondary w-full sm:w-auto px-4 py-3 text-xs"
+                  >
+                    <Upload className="w-4 h-4 text-[#64748B] dark:text-[#94A3B8]" />
+                    Upload Photo
+                  </button>
+                </div>
 
-                    {/* Quick Test Evidence Samples */}
-                    <div className="pt-3 border-t border-[#E2E8F0] dark:border-[#1E293B] text-left">
-                      <span className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8] mb-2">
-                        Quick Field Test Samples:
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleLoadSample('/samples/helmet_violation.jpg', 'MH12DE1433')}
-                          className="p-2 rounded-lg bg-white dark:bg-[#111C2E] hover:bg-[#F7F9FC] dark:hover:bg-[#162238] border border-[#E2E8F0] dark:border-[#1E293B] text-left text-[11px] font-semibold text-[#172033] dark:text-[#F1F5F9] transition flex items-center gap-1.5 shadow-sm"
-                        >
-                          <span className="w-2 h-2 rounded-full bg-red-500" />
-                          No Helmet Sample
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleLoadSample('/samples/triple_riding.jpg', 'MH14EU8921')}
-                          className="p-2 rounded-lg bg-white dark:bg-[#111C2E] hover:bg-[#F7F9FC] dark:hover:bg-[#162238] border border-[#E2E8F0] dark:border-[#1E293B] text-left text-[11px] font-semibold text-[#172033] dark:text-[#F1F5F9] transition flex items-center gap-1.5 shadow-sm"
-                        >
-                          <span className="w-2 h-2 rounded-full bg-amber-500" />
-                          Triple Riding Sample
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleLoadSample('/samples/clear_plate.jpg', 'MH37AB0940')}
-                          className="p-2 rounded-lg bg-white dark:bg-[#111C2E] hover:bg-[#F7F9FC] dark:hover:bg-[#162238] border border-[#E2E8F0] dark:border-[#1E293B] text-left text-[11px] font-semibold text-[#172033] dark:text-[#F1F5F9] transition flex items-center gap-1.5 shadow-sm"
-                        >
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          Clear Plate Sample
-                        </button>
-                      </div>
-                    </div>
+                {/* Quick Test Evidence Samples */}
+                <div className="pt-3 border-t border-[#E2E8F0] dark:border-[#1E293B] text-left">
+                  <span className="block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8] mb-2">
+                    Quick Field Test Samples:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleLoadSample('/samples/helmet_violation.jpg', 'MH12DE1433')}
+                      className="p-2 rounded-lg bg-white dark:bg-[#111C2E] hover:bg-[#F7F9FC] dark:hover:bg-[#162238] border border-[#E2E8F0] dark:border-[#1E293B] text-left text-[11px] font-semibold text-[#172033] dark:text-[#F1F5F9] transition flex items-center gap-1.5 shadow-sm"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      No Helmet Sample
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLoadSample('/samples/triple_riding.jpg', 'MH14EU8921')}
+                      className="p-2 rounded-lg bg-white dark:bg-[#111C2E] hover:bg-[#F7F9FC] dark:hover:bg-[#162238] border border-[#E2E8F0] dark:border-[#1E293B] text-left text-[11px] font-semibold text-[#172033] dark:text-[#F1F5F9] transition flex items-center gap-1.5 shadow-sm"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      Triple Riding Sample
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLoadSample('/samples/clear_plate.jpg', 'MH37AB0940')}
+                      className="p-2 rounded-lg bg-white dark:bg-[#111C2E] hover:bg-[#F7F9FC] dark:hover:bg-[#162238] border border-[#E2E8F0] dark:border-[#1E293B] text-left text-[11px] font-semibold text-[#172033] dark:text-[#F1F5F9] transition flex items-center gap-1.5 shadow-sm"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Clear Plate Sample
+                    </button>
                   </div>
-                )}
-              </>
-            )}
-
-            {/* Image Preview & Review Stage */}
-            {capturedPreview && (
+                </div>
+              </div>
+            ) : (
               <div className="space-y-4">
                 <div className="relative rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-[#1E293B] bg-slate-950 aspect-[4/3] flex items-center justify-center">
                   <img
@@ -752,19 +763,6 @@ export const OfficerDashboard: React.FC = () => {
                 <div>
                   <h4 className="font-bold text-[#172033] dark:text-[#F1F5F9] text-sm">Processing Evidence in AI Pipeline</h4>
                   <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">
-                    Checking YOLOv8 models (No Helmet, Triple Riding, Wrong Side) and running ANPR OCR...
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* DETECTING SPINNER */}
-            {detecting && (
-              <div className="py-16 text-center space-y-4">
-                <RefreshCw className="w-10 h-10 mx-auto text-[#174EA6] dark:text-[#3B82F6] animate-spin" />
-                <div>
-                  <h4 className="font-bold text-[#172033] dark:text-[#F1F5F9] text-sm">Processing Frame in AI Pipeline</h4>
-                  <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">
                     Detecting all vehicles in frame, analyzing individual violations (Helmet, Triple Riding, Wrong Side), and recognizing license plates independently...
                   </p>
                 </div>
@@ -799,23 +797,37 @@ export const OfficerDashboard: React.FC = () => {
                 )}
 
                 {detectionResult.clean_vehicles && detectionResult.clean_vehicles.length > 0 && (
-                  <div className="flex flex-wrap justify-center gap-2 pt-2">
-                    {detectionResult.clean_vehicles.map((cv: any, idx: number) => (
-                      <span
-                        key={idx}
-                        className="px-2.5 py-1 bg-white dark:bg-[#0D1524] border border-emerald-200 dark:border-emerald-900 rounded font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400"
-                      >
-                        ✓ {cv.vehicle_type}: {cv.plate_number}
-                      </span>
-                    ))}
+                  <div className="pt-2 text-left space-y-2">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block text-center">
+                      Detected Vehicles & Recognized Number Plates:
+                    </span>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {detectionResult.clean_vehicles.map((cv: any, idx: number) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1.5 bg-white dark:bg-[#0D1524] border border-emerald-300 dark:border-emerald-800 rounded font-mono text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-sm flex items-center gap-1.5"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="capitalize text-slate-700 dark:text-slate-300 font-sans font-semibold">
+                            {cv.vehicle_type}:
+                          </span>
+                          <span>
+                            {cv.plate_number && cv.plate_number !== 'Clean / Compliant' && cv.plate_number !== 'Unreadable / Review'
+                              ? cv.plate_number
+                              : 'Plate Not Detected'}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {detectionResult.plate_number && detectionResult.plate_number !== 'Not Detected' && !detectionResult.clean_vehicles && (
-                  <div className="inline-block px-3 py-1 bg-white dark:bg-[#0D1524] border border-[#E2E8F0] dark:border-[#1E293B] rounded font-mono text-xs font-bold text-[#172033] dark:text-[#F1F5F9]">
-                    Plate Read: {detectionResult.plate_number}
-                  </div>
-                )}
+                {(!detectionResult.clean_vehicles || detectionResult.clean_vehicles.length === 0) &&
+                  detectionResult.plate_number && detectionResult.plate_number !== 'Not Detected' && (
+                    <div className="inline-block px-3 py-1 bg-white dark:bg-[#0D1524] border border-[#E2E8F0] dark:border-[#1E293B] rounded font-mono text-xs font-bold text-[#172033] dark:text-[#F1F5F9]">
+                      Plate Read: {detectionResult.plate_number}
+                    </div>
+                  )}
               </div>
             )}
 

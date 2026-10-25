@@ -186,10 +186,10 @@
     "semantic_hash": "a1d85646cb362087b60c4ff36a13a0c8"
   },
   "ml-service/app/detect.py": {
-    "mtime": 1792922702.0953846,
-    "seen": 1792923254.209922,
-    "ast_hash": "f9d6e5398112cf79fc2f0129b2cee19e",
-    "semantic_hash": "f9d6e5398112cf79fc2f0129b2cee19e"
+    "mtime": 1792938215.328566,
+    "seen": 1792938783.154312,
+    "ast_hash": "bb2af47d778a5029e32729395dab08f9",
+    "semantic_hash": ""
   },
   "ml-service/app/main.py": {
     "mtime": 1789834666.9362552,
@@ -708,10 +708,10 @@
     "semantic_hash": "f34b807be861c6183727261049c29ef4"
   },
   "frontend/src/components/officer/OfficerDashboard.tsx": {
-    "mtime": 1792923023.5831416,
-    "seen": 1792923254.2050972,
-    "ast_hash": "b2a9c94f7f4cde09f61d8b61ebbbe439",
-    "semantic_hash": "b2a9c94f7f4cde09f61d8b61ebbbe439"
+    "mtime": 1792938682.3962483,
+    "seen": 1792938783.154312,
+    "ast_hash": "0102bde7b74b8f31ed5d8b3d2762716f",
+    "semantic_hash": ""
   },
   "frontend/src/components/officer/OfficerLogin.tsx": {
     "mtime": 1792791355.0911436,
@@ -876,10 +876,10 @@
     "semantic_hash": "3d5009b56c1353c34a76d568edc71252"
   },
   "backend/app/routers/officer.py": {
-    "mtime": 1792923102.2483306,
-    "seen": 1792923254.1899517,
-    "ast_hash": "eef44f21896999d0d2fc243dc2f73b5d",
-    "semantic_hash": "eef44f21896999d0d2fc243dc2f73b5d"
+    "mtime": 1792938307.632144,
+    "seen": 1792938783.154312,
+    "ast_hash": "11b50f1383a602c659a62dfc4f9ada92",
+    "semantic_hash": ""
   },
   "backend/app/core/audit.py": {
     "mtime": 1790363418.960082,
@@ -972,10 +972,10 @@
     "semantic_hash": "52826a0e580cd1d115eefd75344eeefa"
   },
   "frontend/src/components/officer/LiveCameraCapture.tsx": {
-    "mtime": 1792921313.65691,
-    "seen": 1792923254.2050972,
-    "ast_hash": "f087d55c1335547787996fbb5ab1d693",
-    "semantic_hash": "f087d55c1335547787996fbb5ab1d693"
+    "mtime": 1792938440.3846455,
+    "seen": 1792938783.154312,
+    "ast_hash": "956b7a849ed6d03f902e77d14c8f43d6",
+    "semantic_hash": ""
   },
   "backend/app/services/violation_rules.py": {
     "mtime": 1790449712.5358438,

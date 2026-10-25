@@ -1301,16 +1301,27 @@ def _associate_vehicles_plates_violations(
         h_box = h.get("bbox", [])
         hx = (h_box[0] + h_box[2]) / 2.0
         hy = (h_box[1] + h_box[3]) / 2.0
+        target_moto_box = h.get("motorcycle_bbox")
         best_v = None
-        best_dist = 999999.0
-        for veh in detected_vehicles:
-            if veh["vehicle_type"] == "motorcycle":
-                vx1, vy1, vx2, vy2 = veh["bbox"]
-                if (vx1 - 60) <= hx <= (vx2 + 60) and (vy1 - 120) <= hy <= (vy2 + 60):
-                    dist = abs(hx - (vx1 + vx2) / 2.0) + abs(hy - vy1) * 0.5
-                    if dist < best_dist:
-                        best_dist = dist
+        if target_moto_box:
+            best_iou = -1.0
+            for veh in detected_vehicles:
+                if veh["vehicle_type"] == "motorcycle":
+                    iou = _iou(target_moto_box, veh["bbox"])
+                    if iou > best_iou:
+                        best_iou = iou
                         best_v = veh
+        else:
+            best_dist = 999999.0
+            for veh in detected_vehicles:
+                if veh["vehicle_type"] == "motorcycle":
+                    vx1, vy1, vx2, vy2 = veh["bbox"]
+                    vw = max(1.0, vx2 - vx1)
+                    if (vx1 - 0.20 * vw) <= hx <= (vx2 + 0.20 * vw) and (vy1 - 120) <= hy <= (vy2 + 60):
+                        dist = abs(hx - (vx1 + vx2) / 2.0) + abs(hy - vy1) * 0.5
+                        if dist < best_dist:
+                            best_dist = dist
+                            best_v = veh
         if best_v is not None and "no_helmet" not in best_v["violations_found"]:
             best_v["violations_found"].append("no_helmet")
 
@@ -1358,21 +1369,78 @@ def _associate_vehicles_plates_violations(
 
 
 # ============================================================
-# TRIPLE RIDING
+# RIDER ASSIGNMENT & TRIPLE RIDING
 # ============================================================
+
+def _assign_riders_to_motorcycles(
+    motorcycles: List[Dict[str, Any]],
+    people: List[Dict[str, Any]],
+) -> Dict[int, List[Dict[str, Any]]]:
+    """
+    Exclusively assigns each detected person to the single motorcycle they are riding.
+    Evaluates horizontal alignment, vertical astride relationship, and spatial overlap.
+    Ensures riders from neighboring vehicles are not combined.
+    """
+    moto_riders: Dict[int, List[Dict[str, Any]]] = {i: [] for i in range(len(motorcycles))}
+    if not motorcycles or not people:
+        return moto_riders
+
+    for p in people:
+        px1, py1, px2, py2 = p["bbox"]
+        pw = px2 - px1
+        ph = py2 - py1
+        px_c = (px1 + px2) / 2.0
+
+        best_m = None
+        best_score = -1.0
+
+        for i, m in enumerate(motorcycles):
+            mx1, my1, mx2, my2 = m["bbox"]
+            mw = mx2 - mx1
+            mh = my2 - my1
+
+            # Rider must align horizontally with motorcycle body (allow slight lean margin)
+            if not (mx1 - 0.20 * mw <= px_c <= mx2 + 0.20 * mw):
+                continue
+
+            # Rider must be sitting on/astride the vehicle:
+            # Person bottom py2 must reach into motorcycle vertical span, and person top py1 cannot be entirely below
+            if py2 < my1 + 0.10 * mh or py1 > my2:
+                continue
+
+            inter_x = max(0.0, min(mx2, px2) - max(mx1, px1))
+            inter_y = max(0.0, min(my2, py2) - max(my1, py1))
+            inter = inter_x * inter_y
+            p_area = max(1.0, pw * ph)
+            frac = inter / p_area
+            iou = _iou(p["bbox"], m["bbox"])
+            score = frac * 2.0 + iou
+
+            if score > best_score and (frac >= 0.15 or iou >= 0.08):
+                best_score = score
+                best_m = i
+
+        if best_m is not None:
+            moto_riders[best_m].append(p)
+
+    return moto_riders
+
 
 def _detect_triple_riding(
     image: np.ndarray,
     precomputed_motorcycles: Optional[List[Dict[str, Any]]] = None,
     precomputed_people: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
-
+    """
+    Detects triple riding: counts distinct riders on each individual two-wheeler.
+    Identifies 3 or more riders on the same motorcycle or scooter.
+    Avoids combining riders from neighboring vehicles and never flags cars.
+    """
     if precomputed_motorcycles is not None and precomputed_people is not None:
         motorcycles = precomputed_motorcycles
         people = precomputed_people
     else:
         model = get_general_model()
-
         if model is None:
             return []
 
@@ -1381,125 +1449,162 @@ def _detect_triple_riding(
             conf=getattr(settings, "TRIPLE_RIDING_CONFIDENCE_THRESHOLD", 0.30),
             verbose=False,
         )
-
-        if not results:
-            return []
-
-        result = results[0]
-
-        if result.boxes is None:
+        if not results or results[0].boxes is None:
             return []
 
         motorcycles = []
         people = []
-
-        for box in result.boxes:
-
-            cls_id = int(
-                box.cls[0]
-            )
-
-            confidence = float(
-                box.conf[0]
-            )
-
-            coords = (
-                box.xyxy[0]
-                .tolist()
-            )
-
-            if (
-                cls_id
-                == settings.MOTORCYCLE_CLASS_ID
-            ):
-
-                motorcycles.append(
-                    {
-                        "bbox": coords,
-                        "confidence": confidence,
-                    }
-                )
-
-            elif (
-                cls_id
-                == settings.PERSON_CLASS_ID
-            ):
-
-                people.append(
-                    {
-                        "bbox": coords,
-                        "confidence": confidence,
-                    }
-                )
+        for box in results[0].boxes:
+            cls_id = int(box.cls[0])
+            confidence = float(box.conf[0])
+            coords = box.xyxy[0].tolist()
+            if cls_id == settings.MOTORCYCLE_CLASS_ID:
+                motorcycles.append({"bbox": coords, "confidence": confidence})
+            elif cls_id == settings.PERSON_CLASS_ID:
+                people.append({"bbox": coords, "confidence": confidence})
 
     violations = []
+    moto_riders = _assign_riders_to_motorcycles(motorcycles, people)
 
-    for motorcycle in motorcycles:
-
-        motorcycle_box = (
-            motorcycle["bbox"]
-        )
-
-        associated_people = []
-
-        for person in people:
-
-            iou = _iou(
-                motorcycle_box,
-                person["bbox"],
-            )
-            cont = _box_containment(
-                motorcycle_box,
-                person["bbox"],
-            )
-
-            if (
-                iou
-                >= settings.TRIPLE_RIDING_PERSON_IOU_THRESHOLD
-                or cont >= 0.25
-            ):
-
-                associated_people.append(
-                    person
-                )
-
-        people_count = len(
-            associated_people
-        )
+    for i, motorcycle in enumerate(motorcycles):
+        motorcycle_box = motorcycle["bbox"]
+        associated_people = moto_riders.get(i, [])
+        people_count = len(associated_people)
 
         print(
-            f"[ml-service] "
-            f"Motorcycle detected: "
-            f"{motorcycle['confidence']:.3f} "
-            f"| Associated people: "
-            f"{people_count}"
+            f"[ml-service] Motorcycle {i} detected: {motorcycle['confidence']:.3f} "
+            f"| Assigned distinct riders: {people_count}"
         )
 
-        if (
-            people_count
-            >= settings.TRIPLE_RIDING_MIN_PEOPLE
-        ):
-
-            violations.append(
-                {
-                    "class_name": (
-                        "triple_riding"
-                    ),
-                    "confidence": (
-                        motorcycle[
-                            "confidence"
-                        ]
-                    ),
-                    "bbox": (
-                        motorcycle_box
-                    ),
-                    "people_count": (
-                        people_count
-                    ),
-                }
-            )
+        if people_count >= settings.TRIPLE_RIDING_MIN_PEOPLE:
+            violations.append({
+                "class_name": "triple_riding",
+                "confidence": motorcycle["confidence"],
+                "bbox": motorcycle_box,
+                "people_count": people_count,
+            })
 
     return violations
+
+
+# ============================================================
+# HELMET DETECTION
+# ============================================================
+
+def _detect_helmets(
+    image: np.ndarray,
+    motorcycles: List[Dict[str, Any]],
+    people: List[Dict[str, Any]],
+    existing_boxes: List[Dict[str, Any]],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Detects riders and helmet status separately.
+    Identifies a missing helmet only when the rider's head is sufficiently visible.
+    Associates the helmet violation directly with the motorcycle.
+    Never issues helmet challans to cars or unrelated vehicles.
+    """
+    helmet_model = get_helmet_model()
+    if helmet_model is None or not motorcycles:
+        return [], []
+
+    h_orig, w_orig = image.shape[:2]
+
+    # 1. Full image pass with helmet model (captures both 'with helmet' and 'without helmet')
+    global_hel_boxes = []
+    res_hel = helmet_model.predict(
+        image,
+        conf=0.30,
+        verbose=False,
+    )
+    if res_hel and res_hel[0].boxes is not None:
+        for box in res_hel[0].boxes:
+            cls_id = int(box.cls[0])
+            conf = float(box.conf[0])
+            class_name = str(helmet_model.names[cls_id]).lower()
+            coords = [float(x) for x in box.xyxy[0].tolist()]
+            global_hel_boxes.append({
+                "class_name": class_name,
+                "confidence": conf,
+                "bbox": coords,
+            })
+            existing_boxes.append({
+                "class_name": class_name,
+                "confidence": conf,
+                "bbox": coords,
+            })
+
+    # 2. Exclusively assign riders to motorcycles
+    moto_riders = _assign_riders_to_motorcycles(motorcycles, people)
+    helmet_violation_boxes: List[Dict[str, Any]] = []
+
+    for i, moto in enumerate(motorcycles):
+        riders = moto_riders.get(i, [])
+        if not riders:
+            # Parked/unattended motorcycle - cannot have helmet violation
+            continue
+
+        for r_idx, r in enumerate(riders):
+            rx1, ry1, rx2, ry2 = [int(x) for x in r["bbox"]]
+            rw = rx2 - rx1
+            rh = ry2 - ry1
+
+            # Rider's expected head region (top ~38% of rider)
+            head_box = [
+                max(0, rx1 - int(0.08 * rw)),
+                max(0, ry1 - int(0.12 * rh)),
+                min(w_orig, rx2 + int(0.08 * rw)),
+                min(h_orig, ry1 + int(0.38 * rh)),
+            ]
+
+            # Check matching global helmet boxes
+            matched_global = []
+            for gh in global_hel_boxes:
+                gx1, gy1, gx2, gy2 = gh["bbox"]
+                gcx = (gx1 + gx2) / 2.0
+                gcy = (gy1 + gy2) / 2.0
+                if head_box[0] <= gcx <= head_box[2] and head_box[1] <= gcy <= head_box[3]:
+                    matched_global.append(gh)
+
+            is_no_helmet = False
+            best_conf = 0.0
+            best_viol_box = head_box
+
+            if matched_global:
+                with_h = [g for g in matched_global if g["class_name"] == "with helmet" and g["confidence"] >= 0.40]
+                wo_h = [g for g in matched_global if g["class_name"] == settings.HELMET_VIOLATION_CLASS_NAME.lower() and g["confidence"] >= 0.40]
+                if wo_h and not with_h:
+                    is_no_helmet = True
+                    best_conf = wo_h[0]["confidence"]
+                    best_viol_box = wo_h[0]["bbox"]
+                elif with_h:
+                    is_no_helmet = False
+            else:
+                # If full-image pass missed the head due to scale/viewing angle, analyze rider crop
+                cy1 = max(0, ry1 - int(0.10 * rh))
+                cy2 = min(h_orig, ry1 + int(0.55 * rh))
+                cx1 = max(0, rx1 - int(0.10 * rw))
+                cx2 = min(w_orig, rx2 + int(0.10 * rw))
+                crop = image[cy1:cy2, cx1:cx2]
+                if crop.size > 0 and crop.shape[0] >= 20 and crop.shape[1] >= 20:
+                    c_res = helmet_model.predict(crop, conf=0.35, verbose=False)[0]
+                    if c_res.boxes is not None and len(c_res.boxes) > 0:
+                        c_with = [b for b in c_res.boxes if str(helmet_model.names[int(b.cls[0])]).lower() == "with helmet" and float(b.conf[0]) >= 0.40]
+                        c_wo = [b for b in c_res.boxes if str(helmet_model.names[int(b.cls[0])]).lower() == settings.HELMET_VIOLATION_CLASS_NAME.lower() and float(b.conf[0]) >= 0.40]
+                        if c_wo and not c_with:
+                            is_no_helmet = True
+                            best_conf = float(c_wo[0].conf[0])
+                            bx1, by1, bx2, by2 = [float(x) for x in c_wo[0].xyxy[0].tolist()]
+                            best_viol_box = [bx1 + cx1, by1 + cy1, bx2 + cx1, by2 + cy1]
+
+            if is_no_helmet:
+                helmet_violation_boxes.append({
+                    "class_name": settings.HELMET_VIOLATION_CLASS_NAME.lower(),
+                    "confidence": best_conf,
+                    "bbox": [float(x) for x in best_viol_box],
+                    "motorcycle_bbox": [float(x) for x in moto["bbox"]],
+                })
+
+    return helmet_violation_boxes, global_hel_boxes
 
 
 # ============================================================
@@ -1795,40 +1900,20 @@ def process_image(
             violations_found.append("triple_riding")
 
     # ========================================================
-    # 2. HELMET VIOLATION DETECTION
+    # 2. HELMET VIOLATION DETECTION (Rider-Aware & Vehicle-Associated)
     # ========================================================
 
-    helmet_boxes = []
-    helmet_model = get_helmet_model()
+    helmet_boxes, _ = _detect_helmets(
+        image=image,
+        motorcycles=precomputed_motorcycles,
+        people=precomputed_people,
+        existing_boxes=boxes,
+    )
 
-    if helmet_model is not None:
-        helmet_results = helmet_model.predict(
-            image,
-            conf=settings.CONFIDENCE_THRESHOLD,
-            verbose=False,
-        )
-
-        if helmet_results and helmet_results[0].boxes is not None:
-            for box in helmet_results[0].boxes:
-                cls_id = int(box.cls[0])
-                confidence = float(box.conf[0])
-                class_name = str(helmet_model.names[cls_id]).lower()
-                coords = [float(x) for x in box.xyxy[0].tolist()]
-
-                boxes.append({
-                    "class_name": class_name,
-                    "confidence": confidence,
-                    "bbox": coords,
-                })
-
-                if class_name == settings.HELMET_VIOLATION_CLASS_NAME.lower():
-                    helmet_boxes.append({
-                        "class_name": class_name,
-                        "confidence": confidence,
-                        "bbox": coords,
-                    })
-                    if "no_helmet" not in violations_found:
-                        violations_found.append("no_helmet")
+    for hb in helmet_boxes:
+        boxes.append(hb)
+        if "no_helmet" not in violations_found:
+            violations_found.append("no_helmet")
 
     # ========================================================
     # 3. WRONG SIDE VIOLATION DETECTION
@@ -1941,10 +2026,10 @@ def process_image(
                         continue
                     vx1, vy1, vx2, vy2 = [int(v) for v in v_box]
 
-                    # Skip vehicle crop search if vehicle already has a detected plate box
+                    # Skip vehicle crop search if vehicle already has a recognized plate
                     has_plate = False
-                    for _, p_box in valid_boxes:
-                        px1, py1, px2, py2 = p_box
+                    for p in recognized_plates:
+                        px1, py1, px2, py2 = p["bbox"]
                         p_cx = (px1 + px2) / 2.0
                         p_cy = (py1 + py2) / 2.0
                         if vx1 <= p_cx <= vx2 and vy1 <= p_cy <= vy2:
@@ -2047,7 +2132,16 @@ def process_image(
                         recognized_plates.append(rec_res)
 
         # Pass 4: Tilted/Rotated plate search (handles motorcycle kickstand lean, tilted mounts, etc.)
-        if not recognized_plates:
+        unplated_motos = [
+            v for v in detected_vehicle_boxes
+            if v.get("class_name") == "motorcycle"
+            and not any(
+                v["bbox"][0] <= (p["bbox"][0] + p["bbox"][2]) / 2 <= v["bbox"][2]
+                and v["bbox"][1] <= (p["bbox"][1] + p["bbox"][3]) / 2 <= v["bbox"][3]
+                for p in recognized_plates
+            )
+        ]
+        if not recognized_plates or unplated_motos:
             h_orig, w_orig = image.shape[:2]
             center = (w_orig // 2, h_orig // 2)
             for angle in [15, -15, 20, -20]:

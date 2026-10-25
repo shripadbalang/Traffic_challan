@@ -7,21 +7,26 @@ import {
   CheckCircle2,
   Volume2,
   VolumeX,
-  Maximize,
-  FlipHorizontal,
   Zap,
+  Activity,
+  Square,
 } from 'lucide-react';
+import { api } from '../../services/api';
 
 interface LiveCameraCaptureProps {
-  onCapture: (file: File, previewUrl: string) => void;
+  onCapture?: (file: File, previewUrl: string) => void;
+  onLiveDetectionResult?: (result: any, previewUrl: string, file: File) => void;
   onClose: () => void;
   locationName?: string;
+  manualPlate?: string;
 }
 
 export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
   onCapture,
+  onLiveDetectionResult,
   onClose,
   locationName = 'Field Patrol Post',
+  manualPlate,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -36,32 +41,57 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [videoResolution, setVideoResolution] = useState<{ width: number; height: number } | null>(null);
 
-  // Play realistic shutter click via Web Audio API (no external asset needed)
-  const playShutterSound = useCallback(() => {
-    if (!soundEnabled) return;
-    try {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+  // Automatic Live AI Detection state
+  const [isAutoDetecting, setIsAutoDetecting] = useState(true);
+  const [analyzingFrame, setAnalyzingFrame] = useState(false);
+  const [framesAnalyzed, setFramesAnalyzed] = useState(0);
+  const [liveAlert, setLiveAlert] = useState<string | null>(null);
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.08);
+  const isDetectingRef = useRef(false);
+  const isMountedRef = useRef(true);
 
-      gain.gain.setValueAtTime(0.4, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+  // Play realistic shutter click / alert via Web Audio API
+  const playAlertSound = useCallback(
+    (isViolation: boolean = false) => {
+      if (!soundEnabled) return;
+      try {
+        const AudioCtx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
-    } catch {
-      // Audio playback blocked or not supported
-    }
-  }, [soundEnabled]);
+        if (isViolation) {
+          // Double beep for violation alert
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(880, ctx.currentTime);
+          osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.18);
+        } else {
+          // Subtle snapshot click
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(800, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.08);
+        }
+      } catch {
+        // Audio blocked or unsupported
+      }
+    },
+    [soundEnabled]
+  );
 
   // Enumerate video devices
   const enumerateDevices = useCallback(async () => {
@@ -75,7 +105,7 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
     }
   }, []);
 
-  // Stop current active media stream
+  // Stop current active media stream and clean up resources
   const stopCurrentStream = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
@@ -92,7 +122,6 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
       setIsInitializing(true);
       setCameraError(null);
 
-      // Stop any existing tracks before requesting a new stream
       stopCurrentStream();
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -103,7 +132,6 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
         return;
       }
 
-      // Constraints: try optimal 1080p/720p, falling back gracefully
       const constraintsList: MediaStreamConstraints[] = [
         {
           video: deviceId
@@ -179,12 +207,123 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
 
   // Initialize camera on mount
   useEffect(() => {
+    isMountedRef.current = true;
     startCamera();
     return () => {
-      // Clean up tracks when component unmounts
+      isMountedRef.current = false;
       stopCurrentStream();
     };
   }, []);
+
+  // Continuous frame analysis without requiring button clicks
+  const processLiveFrame = useCallback(async () => {
+    if (
+      !videoRef.current ||
+      !canvasRef.current ||
+      isDetectingRef.current ||
+      !isMountedRef.current ||
+      !isAutoDetecting
+    ) {
+      return;
+    }
+
+    const video = videoRef.current;
+    if (video.readyState < 2 || video.paused || video.ended) {
+      return;
+    }
+
+    isDetectingRef.current = true;
+    setAnalyzingFrame(true);
+
+    try {
+      const canvas = canvasRef.current;
+      const width = video.videoWidth || 1280;
+      const height = video.videoHeight || 720;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        isDetectingRef.current = false;
+        setAnalyzingFrame(false);
+        return;
+      }
+
+      ctx.drawImage(video, 0, 0, width, height);
+
+      // Convert canvas to JPEG blob
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.85);
+      });
+
+      if (!blob || !isMountedRef.current) {
+        isDetectingRef.current = false;
+        setAnalyzingFrame(false);
+        return;
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `live_frame_${timestamp}.jpg`;
+      const file = new File([blob], filename, { type: 'image/jpeg' });
+      const previewUrl = URL.createObjectURL(blob);
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (locationName) formData.append('location', locationName);
+      if (manualPlate && manualPlate.trim()) {
+        formData.append('vehicle_plate', manualPlate.trim().toUpperCase());
+      }
+
+      const res = await api.captureAndDetectViolation(formData);
+
+      if (isMountedRef.current) {
+        setFramesAnalyzed((prev) => prev + 1);
+
+        if (res.status === 'VIOLATION_DETECTED') {
+          playAlertSound(true);
+          const chCount = res.total_challans_created || res.vehicles?.length || 1;
+          const firstPlate = res.vehicles?.[0]?.vehicle_number || res.vehicle_number || 'Vehicle';
+          const firstViol =
+            res.vehicles?.[0]?.violations?.[0]?.violation_name || 'Traffic Violation';
+          setLiveAlert(`⚠️ VIOLATION DETECTED: ${firstPlate} (${firstViol}) • ${chCount} Challan(s) Created`);
+        } else if (res.status === 'DUPLICATE_PREVENTED') {
+          setLiveAlert(`ℹ️ Active Challan: ${res.vehicle_number || 'Vehicle'} (${res.violation || 'Violation'})`);
+        } else if (res.status === 'NO_VIOLATION') {
+          const vehCount = res.total_vehicles_detected || (res.clean_vehicles?.length || 1);
+          const plates = res.clean_vehicles
+            ?.map((cv: any) => cv.plate_number)
+            .filter((p: string) => p && p !== 'Clean / Compliant')
+            .join(', ');
+          setLiveAlert(`✓ ${vehCount} Vehicle(s) Analyzed — Compliant${plates ? ` [${plates}]` : ''}`);
+        } else if (res.status === 'PLATE_NOT_FOUND') {
+          setLiveAlert(`⚠️ Plate Unreadable: Violation detected, officer review required`);
+        }
+
+        if (onLiveDetectionResult) {
+          onLiveDetectionResult(res, previewUrl, file);
+        }
+      }
+    } catch (err) {
+      console.warn('[LiveCamera] Detection frame error:', err);
+    } finally {
+      if (isMountedRef.current) {
+        isDetectingRef.current = false;
+        setAnalyzingFrame(false);
+      }
+    }
+  }, [isAutoDetecting, locationName, manualPlate, onLiveDetectionResult, playAlertSound]);
+
+  // Frame sampling timer: runs continuously while camera stream is active
+  useEffect(() => {
+    if (!isAutoDetecting || isInitializing || !!cameraError) return;
+
+    const interval = setInterval(() => {
+      if (!isDetectingRef.current && isMountedRef.current) {
+        processLiveFrame();
+      }
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [isAutoDetecting, isInitializing, cameraError, processLiveFrame]);
 
   // Switch facing mode (Front / Back)
   const toggleFacingMode = () => {
@@ -200,48 +339,46 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
     startCamera(newId);
   };
 
-  // Shutter action: Click live photo
+  // Optional manual shutter snapshot
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
-
     const video = videoRef.current;
     const canvas = canvasRef.current;
-
     const width = video.videoWidth || 1280;
     const height = video.videoHeight || 720;
-
     canvas.width = width;
     canvas.height = height;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Trigger visual shutter flash and sound
     setShutterFlashing(true);
-    playShutterSound();
+    playAlertSound(false);
     setTimeout(() => setShutterFlashing(false), 200);
 
-    // Draw the exact frame
     ctx.drawImage(video, 0, 0, width, height);
 
-    // Convert canvas frame to JPEG blob
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const filename = `live_violation_${timestamp}.jpg`;
+        const filename = `manual_snapshot_${timestamp}.jpg`;
         const file = new File([blob], filename, { type: 'image/jpeg' });
         const previewUrl = URL.createObjectURL(blob);
 
-        // Turn off stream now that snapshot is captured
-        stopCurrentStream();
-
-        // Forward to officer dashboard
-        onCapture(file, previewUrl);
+        if (onCapture) {
+          onCapture(file, previewUrl);
+        }
       },
       'image/jpeg',
       0.95
     );
+  };
+
+  // Stop camera and cleanly exit
+  const handleStopCamera = () => {
+    setIsAutoDetecting(false);
+    stopCurrentStream();
+    onClose();
   };
 
   return (
@@ -250,17 +387,21 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Top HUD Bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white text-xs">
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-3 bg-gradient-to-b from-black/85 via-black/50 to-transparent text-white text-xs">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white font-bold text-[10px] tracking-wider uppercase animate-pulse">
             <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-            Live Patrol Cam
+            Live Camera AI Active
           </span>
           {videoResolution && (
             <span className="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-[10px] text-slate-300 font-mono">
               {videoResolution.width}×{videoResolution.height}
             </span>
           )}
+          <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/50 border border-white/10 text-[10px] text-emerald-400 font-mono">
+            <Activity className="w-3 h-3 text-emerald-400 animate-pulse" />
+            Continuous Auto-Detect
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -299,17 +440,15 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
             </button>
           )}
 
-          {/* Close camera button */}
+          {/* Stop / Close camera button */}
           <button
             type="button"
-            onClick={() => {
-              stopCurrentStream();
-              onClose();
-            }}
-            className="p-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white transition ml-1"
-            title="Close Live Camera"
+            onClick={handleStopCamera}
+            className="p-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white transition ml-1 flex items-center gap-1 text-[11px] font-bold"
+            title="Stop Live Camera"
           >
-            <X className="w-4 h-4" />
+            <Square className="w-3 h-3 fill-white" />
+            <span>Stop Cam</span>
           </button>
         </div>
       </div>
@@ -336,7 +475,7 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
         {isInitializing && !cameraError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-white z-10 gap-3">
             <div className="w-10 h-10 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-slate-300 font-medium">Accessing Field Patrol Camera...</p>
+            <p className="text-xs text-slate-300 font-medium">Starting Live Camera & Automatic AI Detection...</p>
           </div>
         )}
 
@@ -358,7 +497,7 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
               </button>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleStopCamera}
                 className="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold transition"
               >
                 Use Photo Upload
@@ -376,14 +515,29 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
               <div className="w-8 h-8 border-t-2 border-r-2 border-amber-400/80 rounded-tr-sm" />
             </div>
 
-            {/* Center Vehicle / License Plate Target Box */}
-            <div className="self-center flex flex-col items-center">
+            {/* Live Detection Status Alert Banner */}
+            <div className="self-center flex flex-col items-center gap-2 max-w-md w-full px-2">
+              {liveAlert && (
+                <div
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg backdrop-blur-md text-center transition-all ${
+                    liveAlert.startsWith('⚠️')
+                      ? 'bg-red-600/90 text-white border border-red-400 animate-bounce'
+                      : liveAlert.startsWith('✓')
+                      ? 'bg-emerald-600/90 text-white border border-emerald-400'
+                      : 'bg-black/80 text-amber-300 border border-amber-400/50'
+                  }`}
+                >
+                  {liveAlert}
+                </div>
+              )}
+
+              {/* Center Vehicle / License Plate Target Box */}
               <div className="w-64 sm:w-80 h-28 sm:h-32 border-2 border-dashed border-emerald-400/70 rounded-lg bg-emerald-500/5 relative flex items-center justify-center">
                 {/* Crosshairs */}
                 <div className="absolute w-4 h-0.5 bg-emerald-400" />
                 <div className="absolute w-0.5 h-4 bg-emerald-400" />
                 <span className="text-[10px] text-emerald-300 font-mono tracking-wider uppercase bg-black/60 px-2 py-0.5 rounded border border-emerald-400/30">
-                  Align Vehicle / Plate Inside Box
+                  {analyzingFrame ? '⚡ AI Analyzing Frame...' : 'Automatic Live Multi-Vehicle Detection'}
                 </span>
               </div>
             </div>
@@ -391,8 +545,10 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
             {/* Bottom Corner Brackets & Field Location Watermark */}
             <div className="w-full flex items-end justify-between">
               <div className="w-8 h-8 border-b-2 border-l-2 border-amber-400/80 rounded-bl-sm" />
-              <div className="bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[10px] font-mono text-slate-300 border border-white/10">
-                PATROL: {locationName} • {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              <div className="bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[10px] font-mono text-slate-300 border border-white/10 flex items-center gap-2">
+                <span>PATROL: {locationName}</span>
+                <span>•</span>
+                <span className="text-amber-300 font-bold">Frames Analyzed: {framesAnalyzed}</span>
               </div>
               <div className="w-8 h-8 border-b-2 border-r-2 border-amber-400/80 rounded-br-sm" />
             </div>
@@ -400,39 +556,56 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
         )}
       </div>
 
-      {/* Bottom Shutter Controls Bar */}
-      <div className="p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between gap-4">
-        <div className="text-slate-400 text-xs hidden sm:block">
-          <span className="font-semibold text-slate-200">Point at Violating Vehicle</span>
-          <p className="text-[11px] text-slate-500">Hold steady for crisp OCR and AI helmet detection</p>
+      {/* Bottom Controls Bar */}
+      <div className="p-3 sm:p-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between gap-3">
+        {/* Continuous Detection Badge */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className="relative flex h-3 w-3">
+            <span
+              className={`animate-ping absolute inline-flex h-full w-full rounded-full ${
+                analyzingFrame ? 'bg-amber-400 opacity-75' : 'bg-emerald-400 opacity-75'
+              }`}
+            />
+            <span
+              className={`relative inline-flex rounded-full h-3 w-3 ${
+                analyzingFrame ? 'bg-amber-500' : 'bg-emerald-500'
+              }`}
+            />
+          </span>
+          <div className="text-left hidden sm:block">
+            <span className="font-bold text-slate-200 block text-[11px]">
+              {analyzingFrame ? 'AI Processing Live Frame...' : 'Continuous Automatic Detection'}
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono">
+              Auto-detecting vehicles, plates & violations without button clicks
+            </span>
+          </div>
         </div>
 
-        {/* Shutter Capture Button */}
-        <div className="flex-1 sm:flex-none flex items-center justify-center">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {/* Optional manual snapshot */}
           <button
             type="button"
             disabled={isInitializing || !!cameraError}
             onClick={capturePhoto}
-            className="group relative flex items-center justify-center gap-2.5 px-6 py-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 active:scale-95 text-white font-bold rounded-xl shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition"
+            title="Click an optional high-resolution snapshot"
           >
-            <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-red-600 group-hover:scale-125 transition-transform" />
-            </div>
-            <span className="text-sm tracking-wide uppercase font-extrabold">Click Violation Photo</span>
+            <Camera className="w-3.5 h-3.5 text-amber-400" />
+            <span>Snap Still</span>
+          </button>
+
+          {/* Prominent Stop Camera Button */}
+          <button
+            type="button"
+            onClick={handleStopCamera}
+            className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 active:scale-95 text-white font-bold rounded-lg text-xs shadow-md transition"
+          >
+            <Square className="w-3 h-3 fill-white" />
+            <span>Stop Camera</span>
           </button>
         </div>
-
-        {/* Cancel button */}
-        <button
-          type="button"
-          onClick={() => {
-            stopCurrentStream();
-            onClose();
-          }}
-          className="text-xs text-slate-400 hover:text-white transition px-3 py-2 rounded-lg hover:bg-slate-800"
-        >
-          Cancel
-        </button>
       </div>
     </div>
   );

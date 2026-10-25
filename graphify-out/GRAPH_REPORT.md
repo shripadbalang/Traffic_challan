@@ -1,15 +1,17 @@
 # Graph Report - Traffic_challan  (2026-10-25)
 
 ## Corpus Check
-- cluster-only mode — file stats not available
+- 288 files · ~338,736 words
+- Verdict: corpus is large enough that graph structure adds value.
+- Unclassified: 71 file(s) not represented in the graph (top: .csv 53, (none) 10, .example 3)
 
 ## Summary
-- 3449 nodes · 5861 edges · 223 communities (165 shown, 58 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 74 edges (avg confidence: 0.87)
+- 3450 nodes · 5899 edges · 235 communities (184 shown, 51 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 55 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `71462cb0`
+- Built from commit: `72f2cc84`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -20,9 +22,9 @@
 - gray
 - types/index.ts
 - sys
-- test_open_lpr.py
-- test_violation_rules.py
-- button
+- OpenLPRClient
+- TestViolationRulesUnit
+- card
 - design_system.py
 - slide_search_core.py
 - Tailwind CSS Utility Reference
@@ -42,7 +44,7 @@
 - Form & Input Components
 - Tailwind CSS Responsive Design
 - Typography Specifications
-- pathlib
+- test_text_layout_resilience.py
 - icon/generate.py
 - color
 - schemas.py
@@ -65,12 +67,12 @@
 - UI Styling Skill
 - Workflow
 - run_graphify.py
-- shadcn_add.py
+- test_validate_tokens.py
 - Design System
 - Tailwind CSS Customization
 - TailwindConfigGenerator
 - read_rows
-- send_challan_notification
+- notification_service.py
 - react
 - generate-slide.py
 - radius
@@ -93,13 +95,13 @@
 - Color Semantics
 - compilerOptions
 - Traffic E-Challan — Knowledge Graph (Graphify) Guide
-- BM25
+- test_core.py
 - Design Principles
 - Design Principles
-- logo/search.py
+- pathlib
 - fontSize
-- TestShadcnInstaller
-- verify_payment
+- ShadcnInstaller
+- payments.py
 - extract-colors.cjs
 - CIP Design Reference
 - Icon Design Reference
@@ -120,7 +122,7 @@
 - brand/references/update.md
 - Logo Design Reference
 - Token Architecture
-- primitive
+- design-tokens-starter.json
 - _select_palette_for_mode
 - schema.sql
 - 2. Core Backend Service API (`:8000`)
@@ -128,11 +130,11 @@
 - Primitive Tokens
 - embed-tokens.cjs
 - validate-tokens.cjs
-- ShadcnInstaller
+- Challan
 - .check_shadcn_config
 - .generate_config_string
 - test_relevance_evaluator.py
-- create_manual_challan
+- challans.py
 - 🚗 Open-LPR Integration Guide
 - OwnerCreateAccount.tsx
 - _VehicleMotionTracker
@@ -148,8 +150,8 @@
 - duration
 - Slide Strategies
 - ._base_config
-- update_user_profile
-- DetectionResult
+- request_contact_change_otp
+- test_violation_rules.py
 - BM25
 - graphify reference: extra exports and benchmark
 - patch
@@ -159,11 +161,11 @@
 - Slides Reference
 - HTML Slide Template
 - HTML Slide Template
-- TestThresholdGate
+- capture_and_detect_violation
 - Frontend — Traffic E-Challan Web Portal
 - graphify reference: query, path, explain
 - Slides
-- split_values
+- test_data_contracts.py
 - sms_outbox
 - Traffic E-Challan — Backend (FastAPI)
 - manual_test_cli.py
@@ -179,40 +181,40 @@
 - graphify reference: incremental update and cluster-only
 - add_security_headers
 - fast_plate_ocr
-- primary
-- secondary
+- button
+- NotificationResult
 - graphify reference: GitHub clone and cross-repo merge
 - graphify reference: transcribe video and audio
-- .temp_project
-- TestDiagnosticsContracts
-- TestTextLayoutRetrieval
-- Settings
+- input
+- generate_design_system
+- test_single_image.py
+- $type
 - vite-env.d.ts
 - rules/graphify.md
 - slides-create.md
 - extraction-spec.md
 - create.md
-- .test_add_components_no_config
-- .test_add_components_already_installed
-- .test_add_components_dry_run
-- .test_add_all_components_dry_run
-- .test_list_installed_no_config
-- .test_list_installed_with_components
-- .test_init_default_project_root
-- .test_get_installed_components_with_files
+- radius
+- lg
+- slide-token-validator.py
+- padding-y
+- none
+- 16
+- 1
+- 3
 - .test_add_fonts
 - .test_add_breakpoints
 - .test_recommend_plugins
 - .test_generate_typescript_config
 - .test_init_default_typescript
-- .test_generate_javascript_config
+- 8
 - .test_validate_config_no_content
-- .test_validate_config_empty_theme
-- .test_init_javascript
+- destructive
+- destructive-foreground
 - .test_write_config_creates_content
 - .test_write_config_invalid_path
 - .test_init_framework
-- .test_default_output_path_typescript
+- muted
 - .test_default_content_paths_react
 - .test_default_content_paths_vue
 - .test_add_colors
@@ -225,13 +227,24 @@
 - app_routers
 - app_services
 - app_services_notification_service
-- get
-- Challan
+- primary-foreground
+- ring
 - fastapi_staticfiles
 - frontend_src_components_officer_livejunctionfeed_livejunctionfeed
-- BaseSettings
-- ndarray
+- secondary-foreground
+- .test_add_colors_multiple_times
 - random
+- .test_add_spacing
+- .test_recommend_plugins_nextjs
+- .test_write_config
+- .test_full_configuration_javascript
+- .test_custom_output_path
+- detect_wrong_side_smart
+- app_core_security
+- app_services_challan_engine
+- app_services_ml_client
+- app_services_plate_matcher
+- app_services_violation_rules
 
 ## God Nodes (most connected - your core abstractions)
 1. `TailwindConfigGenerator` - 58 edges
@@ -239,68 +252,68 @@
 3. `lucide-react` - 46 edges
 4. `search()` - 43 edges
 5. `TestTailwindConfigGenerator` - 35 edges
-6. `DesignSystemGenerator` - 35 edges
-7. `useAuth()` - 35 edges
-8. `search_stack()` - 35 edges
+6. `search_stack()` - 35 edges
+7. `DesignSystemGenerator` - 35 edges
+8. `useAuth()` - 35 edges
 9. `ShadcnInstaller` - 34 edges
-10. `api` - 32 edges
+10. `api` - 33 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Key Communities` --references--> `create_challan()`  [INFERRED]
   GRAPHIFY.md → backend/app/services/challan_engine.py
-- `Top God Nodes (Core Abstractions)` --references--> `_ocr_plate()`  [INFERRED]
-  GRAPHIFY.md → ml-service/app/detect.py
 - `Top God Nodes (Core Abstractions)` --references--> `detect_violation()`  [INFERRED]
   GRAPHIFY.md → backend/app/routers/violations.py
-- `Top God Nodes (Core Abstractions)` --references--> `process_image()`  [INFERRED]
-  GRAPHIFY.md → ml-service/app/detect.py
 - `Top God Nodes (Core Abstractions)` --references--> `create_challan()`  [INFERRED]
   GRAPHIFY.md → backend/app/services/challan_engine.py
+- `Top God Nodes (Core Abstractions)` --references--> `_ocr_plate()`  [INFERRED]
+  GRAPHIFY.md → ml-service/app/detect.py
+- `Top God Nodes (Core Abstractions)` --references--> `process_image()`  [INFERRED]
+  GRAPHIFY.md → ml-service/app/detect.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (223 total, 58 thin omitted)
+## Communities (235 total, 51 thin omitted)
 
 ### Community 0 - "security.py"
-Cohesion: 0.07
-Nodes (47): app, app_config, app_core_security, app_services_challan_engine, app_services_ml_client, app_services_plate_matcher, app_services_violation_rules, decode_token() (+39 more)
+Cohesion: 0.09
+Nodes (36): app, app_config, decode_token(), get_current_user(), Session, User, require_role(), get_db() (+28 more)
 
 ### Community 1 - "admin.py"
 Cohesion: 0.06
-Nodes (72): log_audit_event(), Session, User, Safely records an administrative or security audit action into the database.…, SystemSetting, ai_monitoring(), create_admin_vehicle(), create_officer() (+64 more)
+Nodes (69): log_audit_event(), Session, User, Safely records an administrative or security audit action into the database.…, ai_monitoring(), create_admin_vehicle(), create_officer(), dashboard_stats() (+61 more)
 
 ### Community 2 - "validate_data.py"
 Cohesion: 0.07
-Nodes (50): Semantic quality contracts for the core UI/UX datasets., read_rows(), TestAccessibilityGuidance, TestChartsTypographyAndIcons, TestCurrentReactGuidance, TestSemanticColors, _catalog_date(), _check_app_interface_contract() (+42 more)
+Nodes (49): Semantic quality contracts for the core UI/UX datasets., read_rows(), TestAccessibilityGuidance, TestChartsTypographyAndIcons, TestCurrentReactGuidance, TestSemanticColors, _catalog_date(), _check_app_interface_contract() (+41 more)
 
 ### Community 3 - "gray"
 Cohesion: 0.05
 Nodes (53): $type, $value, $type, $value, $type, $value, $type, $value (+45 more)
 
 ### Community 4 - "types/index.ts"
-Cohesion: 0.08
-Nodes (32): ChallanDetailsModalProps, CitizenDashboard(), DisputeModalProps, EvidenceModalProps, EvidenceViewer(), EvidenceViewerProps, PaymentModal(), PaymentModalProps (+24 more)
+Cohesion: 0.09
+Nodes (20): Badge(), BadgeProps, Junction, LiveJunctionFeedProps, ManualChallanProps, MediaUploadDetectProps, AdminAIMonitoring, AdminAuditLog (+12 more)
 
 ### Community 5 - "sys"
-Cohesion: 0.10
-Nodes (17): cv2, dotenv, easyocr, glob, detect_wrong_side_smart(), Smart Wrong-Side Detection combining: 1. Vehicle & Rider Detection (YOLO11) 2.…, get_sample_path(), Test helpers for ml-service test scripts. (+9 more)
+Cohesion: 0.12
+Nodes (14): Test script to send messages and challans to ALL citizens: 1. Shripad Balang…, cv2, easyocr, glob, get_sample_path(), Test helpers for ml-service test scripts., Return the absolute path to a sample image in test-assets/samples/ or local…, numpy (+6 more)
 
-### Community 6 - "test_open_lpr.py"
+### Community 6 - "OpenLPRClient"
 Cohesion: 0.09
-Nodes (28): base64, dataclasses, logging, OpenLPRClient, Call Open-LPR microservice REST endpoint (POST /api/v1/ocr/)., Call direct OpenAI-compatible Vision API (e.g. Qwen2-VL / Ollama / llama.cpp)., Asynchronous plate detection method., Check if Open-LPR service or VLM endpoint is reachable. (+20 more)
+Nodes (28): dataclasses, httpx, logging, OpenLPRClient, Call Open-LPR microservice REST endpoint (POST /api/v1/ocr/)., Call direct OpenAI-compatible Vision API (e.g. Qwen2-VL / Ollama / llama.cpp)., Asynchronous plate detection method., Check if Open-LPR service or VLM endpoint is reachable. (+20 more)
 
-### Community 7 - "test_violation_rules.py"
-Cohesion: 0.08
-Nodes (27): app_main, calculate_fine(), create_challan(), get_prior_offense_count(), Challan, Session, Vehicle, filter_eligible_violations() (+19 more)
+### Community 7 - "TestViolationRulesUnit"
+Cohesion: 0.13
+Nodes (10): filter_eligible_violations(), is_two_wheeler(), is_violation_allowed_for_vehicle(), normalize_vehicle_type(), Normalizes vehicle type strings for consistent, case-insensitive comparison.…, Conservatively checks if the given vehicle type is a clearly identified two-…, Determines whether a violation is applicable to the specified vehicle type. -…, Filters a list of violations based on vehicle type eligibility rules. Returns:… (+2 more)
 
-### Community 8 - "button"
-Cohesion: 0.06
-Nodes (45): $type, $value, $type, $value, bg, fg, font-size, hover-bg (+37 more)
+### Community 8 - "card"
+Cohesion: 0.20
+Nodes (12): $type, $value, bg, bg, padding, shadow, card, bg (+4 more)
 
 ### Community 9 - "design_system.py"
 Cohesion: 0.07
-Nodes (37): ansi_ljust(), _detect_page_type(), format_ascii_box(), format_markdown(), format_master_md(), format_page_override_md(), generate_design_system(), _generate_intelligent_overrides() (+29 more)
+Nodes (34): format_output(), Format results for Claude consumption (token-optimized), Logo Design Search - CLI for searching logo design guidelines Usage: python…, ansi_ljust(), _detect_page_type(), format_ascii_box(), format_master_md(), format_page_override_md() (+26 more)
 
 ### Community 10 - "slide_search_core.py"
 Cohesion: 0.08
@@ -311,20 +324,20 @@ Cohesion: 0.05
 Nodes (43): Arbitrary Values, Aspect Ratio, Background Colors, Border Color, Border Radius, Border Style, Border Width, Borders (+35 more)
 
 ### Community 12 - "App.tsx"
-Cohesion: 0.09
-Nodes (32): AdminRoute(), App(), OfficerRoute(), OwnerRoute(), AdminAIMonitoring(), AdminAnalytics(), AdminAuditLogs(), AdminDashboard() (+24 more)
+Cohesion: 0.10
+Nodes (29): AdminRoute(), App(), OfficerRoute(), OwnerRoute(), AdminAIMonitoring(), AdminAnalytics(), AdminAuditLogs(), AdminDashboard() (+21 more)
 
 ### Community 13 - "package.json"
 Cohesion: 0.05
 Nodes (40): dependencies, clsx, lucide-react, qrcode.react, react, react-dom, react-router-dom, @supabase/supabase-js (+32 more)
 
 ### Community 14 - "auth.py"
-Cohesion: 0.16
-Nodes (39): create_access_token(), generate_otp(), Generates a cryptographically secure 6-digit OTP., verify_password(), OtpCode, Simulated OTP store — real SMS gateway not used for demo purposes., User, admin_login() (+31 more)
+Cohesion: 0.23
+Nodes (31): create_access_token(), generate_otp(), Generates a cryptographically secure 6-digit OTP., verify_password(), OtpCode, Simulated OTP store — real SMS gateway not used for demo purposes., admin_login(), citizen_signup() (+23 more)
 
 ### Community 15 - "models.py"
 Cohesion: 0.10
-Nodes (30): hash_password(), AuditLog, Challan, ChallanStatus, DetectionSource, EnforcementAction, Evidence, NotificationChannel (+22 more)
+Nodes (29): hash_password(), AuditLog, Challan, ChallanStatus, DetectionSource, EnforcementAction, NotificationChannel, Officer (+21 more)
 
 ### Community 16 - "Brand Guidelines v1.0"
 Cohesion: 0.05
@@ -332,7 +345,7 @@ Nodes (37): 1. Color Palette, 2. Typography, 3. Logo Usage, 4. Voice & Tone, 5. 
 
 ### Community 17 - "scripts/core.py"
 Cohesion: 0.09
-Nodes (36): _contains_phrase(), _domain_keywords(), _exact_match_diagnostic(), _file_signature(), _get_bm25(), _legacy_successor_guidance(), _load_csv(), _load_csv_snapshot() (+28 more)
+Nodes (34): _contains_phrase(), _domain_keywords(), _exact_match_diagnostic(), _file_signature(), _get_bm25(), _legacy_successor_guidance(), _load_csv(), _load_csv_snapshot() (+26 more)
 
 ### Community 18 - "Design"
 Cohesion: 0.06
@@ -344,7 +357,7 @@ Nodes (35): 1. Visual Communication First, 2. Minimal Text Integration, 3. Exper
 
 ### Community 20 - "useLanguage"
 Cohesion: 0.11
-Nodes (23): ChallanDetailsModal(), EvidenceModal(), MyChallans(), OwnerDashboard(), OwnerProfile(), LanguageSelector(), LanguageSelectorProps, QRReceiptModal() (+15 more)
+Nodes (25): ChallanDetailsModal(), EvidenceModal(), MyChallans(), MyVehicles(), OwnerDashboard(), OwnerProfile(), PaymentModal(), LanguageSelector() (+17 more)
 
 ### Community 21 - "Prerequisites"
 Cohesion: 0.06
@@ -355,12 +368,12 @@ Cohesion: 0.07
 Nodes (18): patch, Integration tests for all challan creation endpoints with SQLite in-memory DB., Officer cannot manually create a NO_HELMET challan for a Car., Officer cannot manually create a TRIPLE_RIDING challan for a Car., Officer CAN manually create a WRONG_SIDE_DRIVING challan for a Car., Officer CAN manually create a NO_HELMET challan for a Motorcycle., Officer CAN manually create a TRIPLE_RIDING challan for a Scooter., In /violations/detect, Car with helmet+triple+wrong_side only generates… (+10 more)
 
 ### Community 23 - "spacing"
-Cohesion: 0.06
-Nodes (34): $type, $value, $type, $value, $type, $value, $type, $value (+26 more)
+Cohesion: 0.09
+Nodes (22): $type, $value, $type, $value, $type, $value, $type, $value (+14 more)
 
 ### Community 24 - "api.ts"
-Cohesion: 0.09
-Nodes (21): store, AdminReports(), AddVehicleModal(), AddVehicleModalProps, LandingPage(), VerificationData, VerifyReceipt(), API_BASE_URL (+13 more)
+Cohesion: 0.12
+Nodes (16): store, AdminReports(), AddVehicleModal(), AddVehicleModalProps, API_BASE_URL, apiFetch(), buildApiUrl(), checkBackendHealth() (+8 more)
 
 ### Community 25 - "Form & Input Components"
 Cohesion: 0.06
@@ -374,29 +387,29 @@ Nodes (32): 1. Mobile-First Design, 2. Consistent Breakpoint Usage, 3. Test at B
 Cohesion: 0.06
 Nodes (30): Accessibility, Base System, Best Practices, Clean & Modern, Common Font Pairings, Contrast Requirements, CSS Implementation, Editorial (+22 more)
 
-### Community 28 - "pathlib"
-Cohesion: 0.10
-Nodes (20): _load_csv(), Load CSV and return list of dicts, Core search function using BM25, CIP Design Core - BM25 search engine for Corporate Identity Program design…, _search_csv(), Logo Design Core - BM25 search engine for logo design guidelines, Offline contract tests for deterministic upstream catalog refreshes., Freshness and migration contracts for native, desktop, and 3D stacks. (+12 more)
+### Community 28 - "test_text_layout_resilience.py"
+Cohesion: 0.20
+Nodes (4): Canonical regression contracts for resilient UI text layouts., read_rows(), TestTextLayoutDataContracts, TestTextLayoutRetrieval
 
 ### Community 29 - "icon/generate.py"
 Cohesion: 0.10
 Nodes (29): apply_color(), apply_viewbox_size(), extract_svgs(), generate_batch(), generate_icon(), generate_sizes(), load_env(), main() (+21 more)
 
 ### Community 30 - "color"
-Cohesion: 0.06
-Nodes (31): $type, $value, background, destructive, destructive-foreground, foreground, muted, muted-foreground (+23 more)
+Cohesion: 0.11
+Nodes (19): $type, $value, background, foreground, muted-foreground, primary, primary-hover, secondary (+11 more)
 
 ### Community 31 - "schemas.py"
 Cohesion: 0.12
-Nodes (30): AdminChallanStatusUpdate, AdminCreateVehicleRequest, AdminOfficerCreate, AdminOfficerUpdate, AdminUpdateVehicleRequest, AnalyticsOverview, AuditLogOut, ChallanCreateManual (+22 more)
+Nodes (32): AdminChallanStatusUpdate, AdminCreateVehicleRequest, AdminOfficerCreate, AdminOfficerUpdate, AdminUpdateVehicleRequest, AnalyticsOverview, AuditLogOut, ChallanCreateManual (+24 more)
 
 ### Community 32 - "cip/generate.py"
-Cohesion: 0.11
-Nodes (28): detect_domain(), get_cip_brief(), Auto-detect the most relevant domain from query, Main search function with auto-domain detection, Search across all domains and combine results, Generate a comprehensive CIP brief for a brand, search(), search_all() (+20 more)
+Cohesion: 0.21
+Nodes (14): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main(), Generate image using Gemini Nano Banana (native image generation) Supports two… (+6 more)
 
 ### Community 33 - "search_stack"
-Cohesion: 0.11
-Nodes (8): _exact_stack_identifier(), Resolve a standalone API identifier even when its BM25 IDF is low., Search stack-specific guidelines, search_stack(), _rows(), TestNativeDesktopStackFreshness, _rows(), TestWebStackFreshness
+Cohesion: 0.08
+Nodes (15): _exact_stack_identifier(), _project_row(), Resolve a standalone API identifier even when its BM25 IDF is low., Search stack-specific guidelines, search_stack(), Freshness and migration contracts for native, desktop, and 3D stacks., _rows(), TestNativeDesktopStackFreshness (+7 more)
 
 ### Community 34 - "Logo Usage Rules"
 Cohesion: 0.07
@@ -416,15 +429,15 @@ Nodes (28): Accordion, Alert, ARIA Labels, Checkbox and Radio, Color Contrast, C
 
 ### Community 38 - "TestTailwindConfigGenerator"
 Cohesion: 0.07
-Nodes (15): Test adding colors multiple times., Test adding full color palette., Test adding custom spacing., Test TailwindConfigGenerator class., Test that adding same plugin twice doesn't duplicate., Test plugin recommendations for Next.js., Test generating config with custom colors., Test generating config with plugins. (+7 more)
+Nodes (15): Test adding full color palette., Test TailwindConfigGenerator class., Test that adding same plugin twice doesn't duplicate., Test generating JavaScript configuration., Test generating config with custom colors., Test generating config with plugins., Test validating valid configuration., Test validating config with empty theme extensions. (+7 more)
 
 ### Community 39 - "DesignSystemGenerator"
-Cohesion: 0.11
-Nodes (12): DesignSystemGenerator, Generates design system recommendations from aggregated searches., Load reasoning rules from CSV., Execute searches across multiple domains., Find matching reasoning rule for a category., Apply reasoning rules to search results., Select best matching result based on priority keywords., Extract results list from search result dict. (+4 more)
+Cohesion: 0.12
+Nodes (10): DesignSystemGenerator, Generates design system recommendations from aggregated searches., Load reasoning rules from CSV., Execute searches across multiple domains., Select best matching result based on priority keywords., Extract results list from search result dict., Generate complete design system recommendation. variance/motion/density are…, Bucket a 1-10 dial value into its tier config. Returns None if value is None. (+2 more)
 
 ### Community 40 - "detect.py"
-Cohesion: 0.16
-Nodes (26): _build_reading_order_text(), _clean_text(), _detect_vehicles(), _digit_to_letter(), _get_easyocr_reader(), _get_fastplate_ocr(), get_open_lpr_client(), _group_ocr_lines() (+18 more)
+Cohesion: 0.19
+Nodes (22): _build_reading_order_text(), _clean_text(), _digit_to_letter(), _get_easyocr_reader(), _get_fastplate_ocr(), _group_ocr_lines(), _letter_to_digit(), _looks_like_indian_plate() (+14 more)
 
 ### Community 41 - "Asset Approval Checklist"
 Cohesion: 0.08
@@ -435,8 +448,8 @@ Cohesion: 0.08
 Nodes (25): Common Pitfalls, Core Prompt Structure, Detailed Brief, Eco/Sustainable, Effective Keywords by Style, Fashion Brand, Healthcare, Industry-Specific Prompts (+17 more)
 
 ### Community 43 - "search"
-Cohesion: 0.12
-Nodes (7): Resolve a deprecated in-domain alias, or expose a cross-domain redirect., Main search function with auto-domain detection, search(), _style_search_destination(), TestSearchDomains, read_rows(), TestStyleTaxonomy
+Cohesion: 0.11
+Nodes (8): Resolve a deprecated in-domain alias, or expose a cross-domain redirect., Main search function with auto-domain detection, search(), _style_search_destination(), _valid_max_results(), TestSearchDomains, read_rows(), TestStyleTaxonomy
 
 ### Community 44 - "Color Palette Management"
 Cohesion: 0.08
@@ -466,9 +479,9 @@ Nodes (23): Art Direction Styles (Reuse from Banner), Color & Contrast, Design B
 Cohesion: 0.17
 Nodes (23): Namespace, cmd_build(), cmd_explain(), cmd_path(), cmd_query(), cmd_serve(), cmd_status(), cmd_update() (+15 more)
 
-### Community 51 - "shadcn_add.py"
-Cohesion: 0.11
-Nodes (17): Regression test for sync-brand-to-tokens.cjs. The color parser required a…, main(), Slide Token Validator (Legacy Wrapper) Now delegates to html-token-validator.py…, Delegate to unified html-token-validator.py with --type slides., Path, Regression tests for validate-tokens.cjs. The validator used to skip any line…, A hardcoded hex on the same line as a var() token is still a violation., A line that references only tokens produces no false positives. (+9 more)
+### Community 51 - "test_validate_tokens.py"
+Cohesion: 0.18
+Nodes (11): Regression test for sync-brand-to-tokens.cjs. The color parser required a…, Path, Regression tests for validate-tokens.cjs. The validator used to skip any line…, A hardcoded hex on the same line as a var() token is still a violation., A line that references only tokens produces no false positives., _run(), test_flags_hardcoded_hex_sharing_line_with_token(), test_token_only_line_reports_no_violation() (+3 more)
 
 ### Community 52 - "Design System"
 Cohesion: 0.09
@@ -479,44 +492,44 @@ Cohesion: 0.09
 Nodes (22): @apply Directive, Best Practices, Color Customization, Complete Tailwind Config, Configuration Examples, Content Configuration, Custom Color Palette, Custom Font Sizes (+14 more)
 
 ### Community 54 - "TailwindConfigGenerator"
-Cohesion: 0.09
-Nodes (13): main(), Add custom font families. Args: fonts: Dict of font_type: [font_names] e.g.,…, Add custom spacing values. Args: spacing: Dict of name: value e.g., {'18':…, Add custom breakpoints. Args: breakpoints: Dict of name: width e.g., {'3xl':…, Add plugin requirements. Args: plugins: List of plugin names e.g.,…, Get plugin recommendations based on configuration. Returns: List of recommended…, Generate Tailwind CSS configuration files., Validate configuration. Returns: Tuple of (valid, message) (+5 more)
+Cohesion: 0.10
+Nodes (12): main(), Add custom font families. Args: fonts: Dict of font_type: [font_names] e.g.,…, Add custom spacing values. Args: spacing: Dict of name: value e.g., {'18':…, Add custom breakpoints. Args: breakpoints: Dict of name: width e.g., {'3xl':…, Add plugin requirements. Args: plugins: List of plugin names e.g.,…, Get plugin recommendations based on configuration. Returns: List of recommended…, Tailwind CSS Configuration Generator Generate tailwind.config.js/ts with custom…, Generate Tailwind CSS configuration files. (+4 more)
 
 ### Community 55 - "read_rows"
-Cohesion: 0.13
-Nodes (4): read_rows(), TestGeneratedCatalogContract, TestLandingAndStackContract, TestReasoningContract
+Cohesion: 0.19
+Nodes (3): read_rows(), TestGeneratedCatalogContract, TestReasoningContract
 
-### Community 56 - "send_challan_notification"
-Cohesion: 0.11
-Nodes (22): Notification, detect_violation(), post, Session, UploadFile, build_challan_email_content(), notify_challan_paid(), Session (+14 more)
+### Community 56 - "notification_service.py"
+Cohesion: 0.16
+Nodes (17): Notification, build_challan_email_content(), notify_challan_paid(), Challan, Session, User, Builds official Maharashtra Traffic E-Challan plain text and HTML emails., Sends an automated email notification to the vehicle owner when a new challan… (+9 more)
 
 ### Community 57 - "react"
-Cohesion: 0.28
-Nodes (8): AdminLayout(), AdminLayoutProps, ThemeToggle(), ThemeToggleProps, useTheme(), api, lucide-react, react
+Cohesion: 0.23
+Nodes (10): AdminLayout(), AdminLayoutProps, ThemeToggle(), ThemeToggleProps, LiveCameraCapture(), LiveCameraCaptureProps, useTheme(), api (+2 more)
 
 ### Community 58 - "generate-slide.py"
 Cohesion: 0.13
 Nodes (21): _e(), generate_chart_slide(), generate_cta_slide(), generate_deck(), generate_metrics_slide(), generate_problem_slide(), generate_solution_slide(), generate_testimonial_slide() (+13 more)
 
 ### Community 59 - "radius"
-Cohesion: 0.13
-Nodes (22): $type, $value, lg, $type, $value, $type, $value, $type (+14 more)
+Cohesion: 0.19
+Nodes (14): $type, $value, $type, $value, $type, $value, primitive, radius (+6 more)
 
 ### Community 60 - "parse_decision_rules"
-Cohesion: 0.10
-Nodes (10): apply_decision_rules(), _object_without_duplicates(), parse_decision_rules(), Return deterministic mutations and an audit trail; never execute data., Closed, non-executable grammar for design-system decision rules., Parse the canonical condition -> action-array representation., _validate_action(), NotificationResult (+2 more)
+Cohesion: 0.16
+Nodes (9): Find matching reasoning rule for a category., Apply reasoning rules to search results., apply_decision_rules(), _object_without_duplicates(), parse_decision_rules(), Return deterministic mutations and an audit trail; never execute data., Closed, non-executable grammar for design-system decision rules., Parse the canonical condition -> action-array representation. (+1 more)
 
 ### Community 61 - "test_design_system_mode.py"
 Cohesion: 0.14
 Nodes (11): _filter_anti_patterns_for_mode(), _query_wants_dark(), True when a styles.csv row describes itself as dark-first., True when the query explicitly asks for a dark theme., Resolve the mode the rest of the output has to agree with., Drop "avoid dark mode" advice once dark mode is the resolved answer., _resolve_color_mode(), _style_is_dark_primary() (+3 more)
 
 ### Community 62 - "add_vehicle"
-Cohesion: 0.13
-Nodes (20): add_vehicle(), get_my_vehicles(), get_vehicle_details(), lookup_vehicle(), delete, get, post, Session (+12 more)
+Cohesion: 0.14
+Nodes (19): add_vehicle(), get_my_vehicles(), get_vehicle_details(), lookup_vehicle(), delete, get, post, Session (+11 more)
 
 ### Community 63 - "process_image"
-Cohesion: 0.16
-Nodes (19): _annotate_frame_image(), _associate_vehicles_plates_violations(), _box_containment(), _cluster_plate_boxes(), _detect_triple_riding(), _iou(), process_image(), process_video() (+11 more)
+Cohesion: 0.11
+Nodes (29): Top God Nodes (Core Abstractions), _annotate_frame_image(), _assign_riders_to_motorcycles(), _associate_vehicles_plates_violations(), _box_containment(), _cluster_plate_boxes(), _detect_helmets(), _detect_triple_riding() (+21 more)
 
 ### Community 64 - "models_loader.py"
 Cohesion: 0.16
@@ -552,7 +565,7 @@ Nodes (18): generate_css_for_background(), get_background_image(), get_curated_i
 
 ### Community 72 - "record_enforcement_action"
 Cohesion: 0.15
-Nodes (19): get_officer_summary(), get_repeat_violators(), list_enforcement_actions(), list_officer_challans(), post, Session, User, Returns the authenticated traffic officer's official profile details and… (+11 more)
+Nodes (19): get_officer_summary(), get_repeat_violators(), list_enforcement_actions(), list_officer_challans(), get, post, Session, User (+11 more)
 
 ### Community 73 - "Brand Consistency Checklist"
 Cohesion: 0.11
@@ -563,8 +576,8 @@ Cohesion: 0.11
 Nodes (17): Apparel (Polo/T-Shirt), Base Prompt Structure, Business Card, CIP Mockup Prompt Engineering, Context Modifiers, Corporate Minimal, Deliverable-Specific Modifiers, Letterhead (+9 more)
 
 ### Community 75 - "render-html.py"
-Cohesion: 0.14
-Nodes (14): generate_html(), get_deliverable_info(), get_image_base64(), main(), Convert image to base64 for embedding in HTML, Extract deliverable type from filename and get info, Generate HTML presentation from CIP images, CIP HTML Presentation Renderer Generates a professional HTML presentation from… (+6 more)
+Cohesion: 0.13
+Nodes (21): get_cip_brief(), Main search function with auto-domain detection, Search across all domains and combine results, Generate a comprehensive CIP brief for a brand, search(), search_all(), generate_html(), get_deliverable_info() (+13 more)
 
 ### Community 76 - "Color Semantics"
 Cohesion: 0.11
@@ -575,12 +588,12 @@ Cohesion: 0.11
 Nodes (17): compilerOptions, allowImportingTsExtensions, isolatedModules, jsx, lib, module, moduleResolution, noEmit (+9 more)
 
 ### Community 78 - "Traffic E-Challan — Knowledge Graph (Graphify) Guide"
-Cohesion: 0.11
-Nodes (17): 1. Quick Start, 2. Interactive Visualizations, 3. Querying the Knowledge Graph, 4. Key Architectural Insights (God Nodes & Hubs), 5. Antigravity & AI Agent Integration, 6. Noise Filtering (`.graphifyignore`), A. Natural Language / Structural Query, B. Shortest Path Tracing (+9 more)
+Cohesion: 0.12
+Nodes (16): 1. Quick Start, 2. Interactive Visualizations, 3. Querying the Knowledge Graph, 4. Key Architectural Insights (God Nodes & Hubs), 5. Antigravity & AI Agent Integration, 6. Noise Filtering (`.graphifyignore`), A. Natural Language / Structural Query, B. Shortest Path Tracing (+8 more)
 
-### Community 79 - "BM25"
-Cohesion: 0.16
-Nodes (7): BM25, BM25 ranking algorithm for text search, Lowercase, normalize synonyms, split, remove punctuation, filter stopwords, Build BM25 index from documents, Score all documents against query, All indexed terms, for suggestion/typo-recovery purposes., TestTokenizer
+### Community 79 - "test_core.py"
+Cohesion: 0.10
+Nodes (10): BM25, BM25 ranking algorithm for text search, Lowercase, normalize synonyms, split, remove punctuation, filter stopwords, Build BM25 index from documents, Score all documents against query, All indexed terms, for suggestion/typo-recovery purposes., Stdlib-only regression tests for core.py / design_system.py (unittest, not…, TestBm25CoreBehavior (+2 more)
 
 ### Community 80 - "Design Principles"
 Cohesion: 0.12
@@ -590,21 +603,21 @@ Nodes (15): 22 Art Direction Styles, Banner Sizes & Art Direction Styles Referen
 Cohesion: 0.12
 Nodes (15): 22 Art Direction Styles, Banner Sizes & Art Direction Styles Reference, Complete Banner Sizes, CTA Rules, Design Principles, Pinterest Research Queries, Print, Print Specs (+7 more)
 
-### Community 82 - "logo/search.py"
-Cohesion: 0.14
-Nodes (15): detect_domain(), _load_csv(), Load CSV and return list of dicts, Core search function using BM25, Auto-detect the most relevant domain from query, Main search function with auto-domain detection, Search across all domains and combine results, search() (+7 more)
+### Community 82 - "pathlib"
+Cohesion: 0.11
+Nodes (22): detect_domain(), Auto-detect the most relevant domain from query, CIP Design Core - BM25 search engine for Corporate Identity Program design…, detect_domain(), _load_csv(), Load CSV and return list of dicts, Core search function using BM25, Auto-detect the most relevant domain from query (+14 more)
 
 ### Community 83 - "fontSize"
 Cohesion: 0.12
 Nodes (16): $type, $value, $type, $value, $type, $value, $type, $value (+8 more)
 
-### Community 84 - "TestShadcnInstaller"
-Cohesion: 0.12
-Nodes (9): Test adding components with overwrite flag., Test ShadcnInstaller class., Test listing installed components when none exist., Test initialization with custom project root., Test initialization with dry run mode., Test checking for existing shadcn config., Test checking for non-existent shadcn config., Test getting installed components when none exist. (+1 more)
+### Community 84 - "ShadcnInstaller"
+Cohesion: 0.06
+Nodes (30): main(), Path, Handle shadcn/ui component installation., shadcn/ui Component Installer Add shadcn/ui components to project with…, Initialize installer. Args: project_root: Project root directory (default:…, ShadcnInstaller, Tests for shadcn_add.py, Test adding components without shadcn config. (+22 more)
 
-### Community 85 - "verify_payment"
-Cohesion: 0.20
-Nodes (15): Payment, _draw_receipt_card(), _generate_receipt(), get_payment_receipt(), initiate_payment(), is_valid_uuid(), Challan, get (+7 more)
+### Community 85 - "payments.py"
+Cohesion: 0.17
+Nodes (19): Payment, _draw_receipt_card(), _generate_receipt(), get_payment_receipt(), initiate_payment(), is_valid_uuid(), Challan, get (+11 more)
 
 ### Community 86 - "extract-colors.cjs"
 Cohesion: 0.20
@@ -655,8 +668,8 @@ Cohesion: 0.14
 Nodes (13): Card Styles, Component Variants, CSS Structures, Feature Grid (3 columns), Layout Decision Flow, Layout Patterns, Layout Selection by Use Case, Metric Styles (+5 more)
 
 ### Community 99 - "BM25"
-Cohesion: 0.16
-Nodes (6): BM25, BM25 ranking algorithm for text search, Lowercase, split, remove punctuation, filter short words, Build BM25 index from documents, Score all documents against query, TestBm25CoreBehavior
+Cohesion: 0.18
+Nodes (9): BM25, _load_csv(), Load CSV and return list of dicts, Core search function using BM25, BM25 ranking algorithm for text search, Lowercase, split, remove punctuation, filter short words, Build BM25 index from documents, Score all documents against query (+1 more)
 
 ### Community 100 - "Tailwind Integration"
 Cohesion: 0.14
@@ -668,7 +681,7 @@ Nodes (13): Card Styles, Component Variants, CSS Structures, Feature Grid (3 col
 
 ### Community 102 - "TestMultiVehicleOfficerCapture"
 Cohesion: 0.19
-Nodes (8): _make_dummy_image_bytes(), Single frame with 2 violating motorcycles -> 2 distinct challans automatically…, Frame with 1 violating motorcycle and 1 clean car -> 1 challan, car marked…, Violating vehicle with unreadable plate is not auto-challaned; flagged for…, Frame where all vehicles are compliant returns NO_VIOLATION., Submitting the same violating vehicle twice within 5 minutes prevents duplicate…, TestMultiVehicleOfficerCapture, patch
+Nodes (8): _make_dummy_image_bytes(), patch, Single frame with 2 violating motorcycles -> 2 distinct challans automatically…, Frame with 1 violating motorcycle and 1 clean car -> 1 challan, car marked…, Violating vehicle with unreadable plate is not auto-challaned; flagged for…, Frame where all vehicles are compliant returns NO_VIOLATION., Submitting the same violating vehicle twice within 5 minutes prevents duplicate…, TestMultiVehicleOfficerCapture
 
 ### Community 103 - "brand/references/update.md"
 Cohesion: 0.15
@@ -682,9 +695,9 @@ Nodes (12): Available Styles, Color Psychology, Commands, Design Brief (Start He
 Cohesion: 0.15
 Nodes (12): Categories, Dark Mode, File Organization, Layer 1: Primitive Tokens, Layer 2: Semantic Tokens, Layer 3: Component Tokens, Layer Overview, Migration from Flat Tokens (+4 more)
 
-### Community 106 - "primitive"
+### Community 106 - "design-tokens-starter.json"
 Cohesion: 0.15
-Nodes (12): $type, $value, dark, semantic, primitive, $schema, $type, $value (+4 more)
+Nodes (12): component, $type, $value, dark, semantic, $schema, $type, $value (+4 more)
 
 ### Community 107 - "_select_palette_for_mode"
 Cohesion: 0.22
@@ -714,9 +727,9 @@ Nodes (9): args, fs, minimal, MINIMAL_TOKENS, path, projectRoot, tokensPath, wra
 Cohesion: 0.24
 Nodes (11): extensions, formatReport(), fs, getFiles(), main(), parseArgs(), path, patterns (+3 more)
 
-### Community 114 - "ShadcnInstaller"
-Cohesion: 0.17
-Nodes (8): main(), Path, Handle shadcn/ui component installation., Initialize installer. Args: project_root: Project root directory (default:…, ShadcnInstaller, Test adding all components without config., Test getting installed components without config., Test adding components with empty list.
+### Community 114 - "Challan"
+Cohesion: 0.14
+Nodes (16): ChallanDetailsModalProps, CitizenDashboard(), DisputeModalProps, EvidenceModalProps, EvidenceViewer(), EvidenceViewerProps, PaymentModalProps, Modal() (+8 more)
 
 ### Community 115 - ".check_shadcn_config"
 Cohesion: 0.21
@@ -727,11 +740,11 @@ Cohesion: 0.20
 Nodes (6): Generate configuration file content. Returns: Configuration file as string, Generate TypeScript configuration., Generate JavaScript configuration., Format plugins array for config. Validates each plugin name against a strict…, Add indentation to JSON string., Write configuration to file. Returns: Tuple of (success, message)
 
 ### Community 117 - "test_relevance_evaluator.py"
-Cohesion: 0.20
-Nodes (4): Unit tests for metric math and relevance fixture validation., TestFixtureValidation, TestMetricMath, importlib_util
+Cohesion: 0.12
+Nodes (5): Unit tests for metric math and relevance fixture validation., TestFixtureValidation, TestMetricMath, TestThresholdGate, importlib_util
 
-### Community 118 - "create_manual_challan"
-Cohesion: 0.29
+### Community 118 - "challans.py"
+Cohesion: 0.32
 Nodes (12): create_manual_challan(), dispute_challan(), get_challan_detail(), is_valid_uuid(), my_challans(), get, patch, post (+4 more)
 
 ### Community 119 - "🚗 Open-LPR Integration Guide"
@@ -794,13 +807,13 @@ Nodes (9): Common Structures, Duarte Sparkline Pattern, Matching Strategy to Con
 Cohesion: 0.22
 Nodes (6): Any, Path, Initialize generator. Args: typescript: If True, generate .ts config, else .js…, Determine default output path., Create base configuration structure., Get default content paths for framework.
 
-### Community 134 - "update_user_profile"
-Cohesion: 0.22
-Nodes (10): get_user_profile(), get, put, Session, User, Return profile details for the currently authenticated user., Update profile details. Changing email or mobile number requires providing the…, update_user_profile() (+2 more)
+### Community 134 - "request_contact_change_otp"
+Cohesion: 0.17
+Nodes (13): get_user_profile(), get, limit, post, put, Request, Session, User (+5 more)
 
-### Community 135 - "DetectionResult"
-Cohesion: 0.27
-Nodes (7): DetectionResult, Client for the ML inference microservice (separate FastAPI service running your…, run_detection(), Verify DetectionResult schema parses multi-vehicle detections and can issue…, Verify DetectionResult schema can serialize and parse Open-LPR outputs., TestOpenLPRChallanIntegration, httpx
+### Community 135 - "test_violation_rules.py"
+Cohesion: 0.11
+Nodes (24): app_main, ViolationType, DetectionResult, calculate_fine(), calculate_risk_score(), create_challan(), get_prior_offense_count(), Challan (+16 more)
 
 ### Community 136 - "BM25"
 Cohesion: 0.28
@@ -823,8 +836,8 @@ Cohesion: 0.25
 Nodes (8): _exact_row_identity(), Suggest complete public identities so a retry can bypass score thresholds., Return non-empty public identities from ordinary and alias fields., Resolve an explicit style identity without opening generic variant ranking., Return one row whose stable public identity exactly matches the query., _row_identities(), _style_identity(), _suggest_identities()
 
 ### Community 141 - "backend/app/config.py"
-Cohesion: 0.25
-Nodes (6): Config, BaseSettings, Settings, model_validator, pydantic, pydantic_settings
+Cohesion: 0.17
+Nodes (9): Config, BaseSettings, Settings, Config, BaseSettings, Settings, model_validator, pydantic (+1 more)
 
 ### Community 142 - "Slides Reference"
 Cohesion: 0.29
@@ -838,6 +851,10 @@ Nodes (6): Animation Classes, Background Images, Base Structure, Chart.js Integr
 Cohesion: 0.29
 Nodes (6): Animation Classes, Background Images, Base Structure, Chart.js Integration, CSS Variables Reference, HTML Slide Template
 
+### Community 145 - "capture_and_detect_violation"
+Cohesion: 0.18
+Nodes (13): Evidence, capture_and_detect_violation(), UploadFile, Field violation detection flow: 1. Officer captures image via camera or upload.…, detect_violation(), post, Session, UploadFile (+5 more)
+
 ### Community 146 - "Frontend — Traffic E-Challan Web Portal"
 Cohesion: 0.29
 Nodes (6): 1. Citizen Portal, 2. Officer & Admin Dashboard, Development Setup (Once Initialized), Features & Modules, Frontend — Traffic E-Challan Web Portal, Recommended Stack
@@ -850,9 +867,9 @@ Nodes (5): For /graphify explain, For /graphify path, graphify reference: query,
 Cohesion: 0.33
 Nodes (5): References (Knowledge Base), Routing, Slides, Subcommands, When to Use
 
-### Community 149 - "split_values"
-Cohesion: 0.47
-Nodes (3): split_values(), style_identities(), TestStyleIdentityContract
+### Community 149 - "test_data_contracts.py"
+Cohesion: 0.17
+Nodes (6): Cross-file semantic contracts for curated design data., split_values(), style_identities(), TestLandingAndStackContract, TestStyleIdentityContract, copy
 
 ### Community 150 - "sms_outbox"
 Cohesion: 0.47
@@ -910,37 +927,109 @@ Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphif
 Cohesion: 0.50
 Nodes (4): add_security_headers(), Request, Defense-in-depth HTTP security headers., middleware
 
-### Community 165 - "primary"
-Cohesion: 0.67
-Nodes (3): primary, $type, $value
+### Community 165 - "button"
+Cohesion: 0.20
+Nodes (10): fg, font-size, hover-bg, button, $type, $value, $type, $value (+2 more)
 
-### Community 166 - "secondary"
-Cohesion: 0.67
-Nodes (3): secondary, $type, $value
+### Community 166 - "NotificationResult"
+Cohesion: 0.20
+Nodes (3): NotificationResult, Structured outcome of an email dispatch. Acts like a dictionary (keys: success,…, dict
 
-### Community 172 - "Settings"
+### Community 169 - "input"
+Cohesion: 0.29
+Nodes (8): padding-x, input, $type, $value, focus-ring, padding-x, $type, $value
+
+### Community 170 - "generate_design_system"
+Cohesion: 0.29
+Nodes (5): format_markdown(), generate_design_system(), Format design system as markdown., Main entry point for design system generation. Args: query: Search query (e.g.,…, TestPersistence
+
+### Community 171 - "test_single_image.py"
+Cohesion: 0.40
+Nodes (4): annotate_image(), main(), ndarray, Draw bounding boxes and detection tags on the image.
+
+### Community 172 - "$type"
+Cohesion: 0.60
+Nodes (5): $type, $value, border, border, border
+
+### Community 178 - "radius"
+Cohesion: 0.60
+Nodes (5): radius, radius, radius, $type, $value
+
+### Community 179 - "lg"
+Cohesion: 0.60
+Nodes (5): lg, $type, $value, lg, lg
+
+### Community 180 - "slide-token-validator.py"
+Cohesion: 0.50
+Nodes (3): main(), Slide Token Validator (Legacy Wrapper) Now delegates to html-token-validator.py…, Delegate to unified html-token-validator.py with --type slides.
+
+### Community 181 - "padding-y"
 Cohesion: 0.67
-Nodes (3): BaseSettings, Config, Settings
+Nodes (4): padding-y, padding-y, $type, $value
+
+### Community 182 - "none"
+Cohesion: 0.67
+Nodes (4): $type, $value, none, none
+
+### Community 183 - "16"
+Cohesion: 0.67
+Nodes (3): $type, $value, 16
+
+### Community 184 - "1"
+Cohesion: 0.67
+Nodes (3): $type, $value, 1
+
+### Community 185 - "3"
+Cohesion: 0.67
+Nodes (3): $type, $value, 3
+
+### Community 191 - "8"
+Cohesion: 0.67
+Nodes (3): $type, $value, 8
+
+### Community 193 - "destructive"
+Cohesion: 0.67
+Nodes (3): destructive, $type, $value
+
+### Community 194 - "destructive-foreground"
+Cohesion: 0.67
+Nodes (3): destructive-foreground, $type, $value
+
+### Community 198 - "muted"
+Cohesion: 0.67
+Nodes (3): muted, $type, $value
+
+### Community 213 - "primary-foreground"
+Cohesion: 0.67
+Nodes (3): primary-foreground, $type, $value
+
+### Community 214 - "ring"
+Cohesion: 0.67
+Nodes (3): ring, $type, $value
+
+### Community 219 - "secondary-foreground"
+Cohesion: 0.67
+Nodes (3): secondary-foreground, $type, $value
 
 ## Knowledge Gaps
-- **1088 isolated node(s):** `LiveCameraCaptureProps`, `OfficerSummary`, `RepeatViolator`, `Config`, `Theme` (+1083 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1774 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **58 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1087 isolated node(s):** `fs`, `path`, `fs`, `path`, `fs` (+1082 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1777 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **51 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `TailwindConfigGenerator` connect `TailwindConfigGenerator` to `._base_config`, `TestTailwindConfigGenerator`, `.test_add_fonts`, `.test_add_breakpoints`, `.test_recommend_plugins`, `.test_generate_typescript_config`, `.test_init_default_typescript`, `.test_generate_javascript_config`, `.test_validate_config_no_content`, `.test_validate_config_empty_theme`, `.test_init_javascript`, `.test_write_config_creates_content`, `.test_write_config_invalid_path`, `.test_init_framework`, `.test_default_output_path_typescript`, `.test_default_content_paths_react`, `.test_default_content_paths_vue`, `.test_add_colors`, `render-html.py`, `.generate_config_string`, `test_tailwind_config_gen.py`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
-- **Why does `DesignSystemGenerator` connect `DesignSystemGenerator` to `design_system.py`, `_select_palette_for_mode`, `read_rows`, `_palette_is_dark`, `test_design_system_mode.py`?**
-  _High betweenness centrality (0.012) - this node is a cross-community bridge._
-- **Why does `ShadcnInstaller` connect `ShadcnInstaller` to `patch`, `.test_add_components_no_config`, `.check_shadcn_config`, `shadcn_add.py`, `TestShadcnInstaller`, `.test_add_all_components_dry_run`, `.test_add_components_already_installed`, `.test_add_components_dry_run`, `.test_get_installed_components_with_files`, `.test_list_installed_no_config`, `.test_list_installed_with_components`, `.test_init_default_project_root`?**
-  _High betweenness centrality (0.010) - this node is a cross-community bridge._
+- **Why does `ShadcnInstaller` connect `ShadcnInstaller` to `patch`, `.check_shadcn_config`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+- **Why does `TailwindConfigGenerator` connect `TailwindConfigGenerator` to `._base_config`, `TestTailwindConfigGenerator`, `.test_add_fonts`, `.test_add_breakpoints`, `.test_recommend_plugins`, `.test_generate_typescript_config`, `.test_init_default_typescript`, `.test_validate_config_no_content`, `.test_write_config_creates_content`, `.test_write_config_invalid_path`, `.test_init_framework`, `.test_default_content_paths_react`, `.test_default_content_paths_vue`, `.test_add_colors`, `.test_add_colors_multiple_times`, `.test_add_spacing`, `.test_recommend_plugins_nextjs`, `.test_write_config`, `.test_full_configuration_javascript`, `.test_custom_output_path`, `.generate_config_string`, `test_tailwind_config_gen.py`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `search()` connect `search` to `search_stack`, `validate_data.py`, `DesignSystemGenerator`, `design_system.py`, `_row_identities`, `test_core.py`, `scripts/core.py`, `pathlib`, `detect_domain`, `test_text_layout_resilience.py`?**
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `TailwindConfigGenerator` (e.g. with `TestGeneratedConfigIsValidJs` and `TestTailwindConfigGenerator`) actually correct?**
   _`TailwindConfigGenerator` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `LiveCameraCaptureProps`, `OfficerSummary`, `RepeatViolator` to the rest of the system?**
-  _1088 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `fs`, `path`, `fs` to the rest of the system?**
+  _1087 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `security.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.0715372907153729 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0925589836660617 - nodes in this community are weakly interconnected._
 - **Should `admin.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.05593607305936073 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05921325051759834 - nodes in this community are weakly interconnected._

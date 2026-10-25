@@ -189,12 +189,22 @@ async def capture_and_detect_violation(
     # 4. Check if no violation was detected anywhere in the captured frame
     has_any_violation = any(v.violations_found for v in vehicles_list) or bool(detection.violations_found)
     if not has_any_violation:
+        clean_vehicles = []
+        for veh_idx, dv in enumerate(vehicles_list, start=1):
+            clean_vehicles.append({
+                "vehicle_id": dv.vehicle_id or veh_idx,
+                "vehicle_type": dv.vehicle_type,
+                "plate_number": dv.plate_number or "Clean / Compliant",
+                "bbox": dv.bbox,
+                "status": "NO_VIOLATION",
+            })
         return {
             "status": "NO_VIOLATION",
             "message": "No traffic violation detected across all detected vehicles. Please review the image and capture another image if required.",
             "plate_number": detection.plate_number or "Not Detected",
             "evidence_url": evidence_url,
             "detected_vehicles": [v.model_dump() for v in detection.detected_vehicles],
+            "clean_vehicles": clean_vehicles,
             "total_vehicles_detected": len(vehicles_list),
             "inference_time_ms": detection.inference_time_ms,
             "ocr_time_ms": detection.ocr_time_ms,
