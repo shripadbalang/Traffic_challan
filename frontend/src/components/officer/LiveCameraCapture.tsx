@@ -207,21 +207,11 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    let targetWidth = video.videoWidth || 1280;
-    let targetHeight = video.videoHeight || 720;
-    const maxDim = 1280;
-    if (targetWidth > maxDim || targetHeight > maxDim) {
-      if (targetWidth > targetHeight) {
-        targetHeight = Math.round((targetHeight * maxDim) / targetWidth);
-        targetWidth = maxDim;
-      } else {
-        targetWidth = Math.round((targetWidth * maxDim) / targetHeight);
-        targetHeight = maxDim;
-      }
-    }
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
 
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
+    canvas.width = width;
+    canvas.height = height;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -231,10 +221,10 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
     playShutterSound();
     setTimeout(() => setShutterFlashing(false), 200);
 
-    // Draw frame scaled smoothly
-    ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+    // Draw the exact frame
+    ctx.drawImage(video, 0, 0, width, height);
 
-    // Convert canvas frame to optimized JPEG blob for instant AI transmission
+    // Convert canvas frame to JPEG blob
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
@@ -250,7 +240,7 @@ export const LiveCameraCapture: React.FC<LiveCameraCaptureProps> = ({
         onCapture(file, previewUrl);
       },
       'image/jpeg',
-      0.82
+      0.95
     );
   };
 

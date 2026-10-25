@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -15,11 +15,7 @@ from app import models, schemas
 from app.core.security import require_role, get_current_user
 from app.services.ml_client import run_detection
 from app.services.challan_engine import create_challan, calculate_fine
-from app.services.notification_service import (
-    send_challan_notification,
-    notify_challan_created,
-    dispatch_challan_notifications_background,
-)
+from app.services.notification_service import send_challan_notification, notify_challan_created
 from app.services.plate_matcher import find_vehicle_by_plate
 from app.services.violation_rules import filter_eligible_violations, is_two_wheeler
 
@@ -114,7 +110,6 @@ def get_officer_summary(
 
 @router.post("/violations/capture-and-detect")
 async def capture_and_detect_violation(
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     location: Optional[str] = Form(None),
     latitude: Optional[float] = Form(None),
@@ -324,8 +319,25 @@ async def capture_and_detect_violation(
         db.commit()
         db.refresh(challan)
 
-        # Format created challan metadata
-        has_owner_email = bool(owner and owner.email and owner.email.strip())
+        # Dispatch email to owner & record delivery status
+        try:
+            notif_res = send_challan_notification(
+                db=db,
+                challan=challan,
+                user=owner,
+                evidence_url=evidence_url,
+            )
+        except Exception as exc:
+            print(f"[OFFICER NOTIFICATION ERROR] {exc}")
+            notif_res = {
+                "success": False,
+                "status": "failed",
+                "recipient": owner.email if owner else None,
+                "recipient_email": owner.email if owner else None,
+                "error": str(exc),
+            }
+        email_delivery_results.append(notif_res)
+
         created_challans.append({
             "challan_id": str(challan.id),
             "violation_code": violation_type.code,
@@ -333,20 +345,11 @@ async def capture_and_detect_violation(
             "legal_section": violation_type.legal_section or "Motor Vehicles Act",
             "fine_amount": float(challan.fine_amount),
             "confidence": round(combined_confidence * 100, 1),
-            "email_sent": has_owner_email,
-            "email_status": "queued" if has_owner_email else "not_available",
-            "recipient_email": owner.email if owner else None,
+            "email_sent": bool(notif_res.get("success", notif_res.get("status") == "sent")),
+            "email_status": notif_res.get("status", "failed"),
+            "recipient_email": notif_res.get("recipient_email") or notif_res.get("recipient"),
         })
         total_fine += float(challan.fine_amount)
-
-    # Fast background dispatch: Send email & SMS notifications asynchronously without blocking the officer response
-    new_challan_ids = [c["challan_id"] for c in created_challans]
-    if new_challan_ids and owner and owner.email:
-        background_tasks.add_task(
-            dispatch_challan_notifications_background,
-            new_challan_ids,
-            evidence_url,
-        )
 
     # 7. Owner Privacy: Minimum required information only (never expose passwords, tokens, full phone/email)
     unpaid_count = (
@@ -359,11 +362,11 @@ async def capture_and_detect_violation(
     )
 
     owner_display = owner.full_name if owner else "Unregistered Owner"
-    has_owner_email = bool(owner and owner.email and owner.email.strip())
-    primary_email_status = "queued" if has_owner_email else "not_available"
-    primary_recipient_email = owner.email if owner else None
-    primary_email_error = None
-    primary_email_sent = has_owner_email
+    primary_email_res = email_delivery_results[0] if email_delivery_results else {}
+    primary_email_status = primary_email_res.get("status", "not_available" if not (owner and owner.email) else "failed")
+    primary_recipient_email = primary_email_res.get("recipient_email") or primary_email_res.get("recipient") or (owner.email if owner else None)
+    primary_email_error = primary_email_res.get("error")
+    primary_email_sent = bool(primary_email_res.get("success", primary_email_status == "sent"))
 
     return {
         "status": "VIOLATION_DETECTED",

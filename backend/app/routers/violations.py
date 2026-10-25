@@ -3,7 +3,7 @@ import json
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -12,11 +12,7 @@ from app import models, schemas
 from app.core.security import require_role
 from app.services.ml_client import run_detection
 from app.services.challan_engine import create_challan
-from app.services.notification_service import (
-    send_challan_notification,
-    notify_challan_created,
-    dispatch_challan_notifications_background,
-)
+from app.services.notification_service import send_challan_notification, notify_challan_created
 from app.services.plate_matcher import find_vehicle_by_plate
 from app.services.violation_rules import filter_eligible_violations
 
@@ -35,7 +31,6 @@ DETECTION_CLASS_TO_VIOLATION_CODE = {
 
 @router.post("/detect")
 async def detect_violation(
-    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     location: str = Form(None),
     latitude: float = Form(None),
@@ -162,15 +157,31 @@ async def detect_violation(
             ))
             db.commit()
 
-            created_challans.append(challan.id)
+            owner = vehicle.owner
+            if not owner and vehicle.owner_id:
+                owner = db.query(models.User).filter(models.User.id == vehicle.owner_id).first()
+            if not owner and vehicle.registered_mobile:
+                owner = db.query(models.User).filter(models.User.mobile_number == vehicle.registered_mobile).first()
 
-    # Dispatch notifications in background without blocking response
-    if created_challans:
-        background_tasks.add_task(
-            dispatch_challan_notifications_background,
-            created_challans,
-            f"/files/evidence/{os.path.basename(saved_path)}",
-        )
+            try:
+                notif_res = send_challan_notification(
+                    db=db,
+                    challan=challan,
+                    user=owner,
+                    evidence_url=f"/files/evidence/{os.path.basename(saved_path)}",
+                )
+            except Exception as exc:
+                print(f"[CHALLAN EMAIL WARNING] Could not dispatch AI challan email: {exc}")
+                notif_res = {
+                    "success": False,
+                    "status": "failed",
+                    "recipient": owner.email if owner else None,
+                    "recipient_email": owner.email if owner else None,
+                    "error": str(exc),
+                }
+
+            email_delivery_results.append(notif_res)
+            created_challans.append(challan.id)
 
     if not created_challans and unmatched_vehicles:
         return {
@@ -186,8 +197,9 @@ async def detect_violation(
         else f"0 challan(s) auto-created across {len(matched_vehicle_plates)} vehicle(s). Ineligible violations filtered out."
     )
 
-    primary_email_status = "queued" if created_challans else "not_available"
-    primary_recipient = None
+    primary_res = email_delivery_results[0] if email_delivery_results else {}
+    primary_email_status = primary_res.get("status", "not_available")
+    primary_recipient = primary_res.get("recipient_email") or primary_res.get("recipient")
 
     return {
         "message": status_message,

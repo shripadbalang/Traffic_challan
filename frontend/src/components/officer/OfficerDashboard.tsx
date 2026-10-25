@@ -247,61 +247,6 @@ export const OfficerDashboard: React.FC = () => {
     }
   };
 
-// Fast client-side image optimization: Downscales large phone camera photos to max 1280px (0.82 JPEG)
-// Shrinks 8MB camera images to ~150KB in under 50ms, drastically cutting network transfer latency
-const optimizeImageForUpload = async (file: File): Promise<File> => {
-  if (!file.type.startsWith('image/')) return file;
-  if (file.size <= 300 * 1024 && (file.type === 'image/jpeg' || file.type === 'image/webp')) {
-    return file;
-  }
-
-  return new Promise((resolve) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      const maxDim = 1280;
-      let { width, height } = img;
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(file);
-            return;
-          }
-          const cleanName = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
-          resolve(new File([blob], cleanName, { type: 'image/jpeg' }));
-        },
-        'image/jpeg',
-        0.82
-      );
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(file);
-    };
-    img.src = objectUrl;
-  });
-};
-
   // Submit to Real AI Detection
   const handleSubmitForDetection = async () => {
     if (!capturedFile) return;
@@ -310,15 +255,14 @@ const optimizeImageForUpload = async (file: File): Promise<File> => {
     setDetectionError(null);
     setDetectionResult(null);
 
-    try {
-      const fileToSend = await optimizeImageForUpload(capturedFile);
-      const formData = new FormData();
-      formData.append('file', fileToSend);
-      formData.append('location', patrolLocation);
-      if (manualPlate.trim()) {
-        formData.append('vehicle_plate', manualPlate.trim().toUpperCase());
-      }
+    const formData = new FormData();
+    formData.append('file', capturedFile);
+    formData.append('location', patrolLocation);
+    if (manualPlate.trim()) {
+      formData.append('vehicle_plate', manualPlate.trim().toUpperCase());
+    }
 
+    try {
       const res = await api.captureAndDetectViolation(formData);
       setDetectionResult(res);
       // Refresh summary statistics after challan generation
@@ -949,10 +893,10 @@ const optimizeImageForUpload = async (file: File): Promise<File> => {
                     </div>
                     <div>
                       Email Notice:{' '}
-                      {detectionResult.email_status === 'sent' || detectionResult.email_status === 'queued' ? (
+                      {detectionResult.email_status === 'sent' ? (
                         <span className="inline-flex items-center gap-1 font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded text-[11px]">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                          {detectionResult.email_status === 'queued' ? 'Dispatched to vehicle owner' : 'Sent to vehicle owner'} {detectionResult.recipient_email ? `(${detectionResult.recipient_email})` : ''}
+                          Sent to vehicle owner {detectionResult.recipient_email ? `(${detectionResult.recipient_email})` : ''}
                         </span>
                       ) : detectionResult.email_status === 'failed' ? (
                         <span

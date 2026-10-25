@@ -1186,51 +1186,27 @@ VEHICLE_CLASS_NAMES = {
 }
 
 
-def _detect_vehicles_and_entities(image: np.ndarray) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+def _detect_vehicles(image: np.ndarray) -> List[Dict[str, Any]]:
     """
-    Detect all vehicles (motorcycles, cars, buses, trucks, bicycles) and persons using a single general model forward pass.
-    Returns (vehicles, motorcycles, people).
+    Detect all vehicles (motorcycles, cars, buses, trucks, bicycles) using general model.
     """
     model = get_general_model()
     if model is None:
-        return [], [], []
+        return []
 
     results = model.predict(image, conf=0.25, verbose=False)
     if not results or results[0].boxes is None:
-        return [], [], []
+        return []
 
     vehicles = []
-    motorcycles = []
-    people = []
-
     for box in results[0].boxes:
         cls_id = int(box.cls[0])
-        conf = float(box.conf[0])
-        coords = [float(x) for x in box.xyxy[0].tolist()]
-
         if cls_id in VEHICLE_CLASS_NAMES:
             vehicles.append({
                 "class_name": VEHICLE_CLASS_NAMES[cls_id],
-                "confidence": conf,
-                "bbox": coords,
+                "confidence": float(box.conf[0]),
+                "bbox": [float(x) for x in box.xyxy[0].tolist()],
             })
-
-        if cls_id == settings.MOTORCYCLE_CLASS_ID:
-            motorcycles.append({
-                "bbox": coords,
-                "confidence": conf,
-            })
-        elif cls_id == settings.PERSON_CLASS_ID:
-            people.append({
-                "bbox": coords,
-                "confidence": conf,
-            })
-
-    return vehicles, motorcycles, people
-
-
-def _detect_vehicles(image: np.ndarray) -> List[Dict[str, Any]]:
-    vehicles, _, _ = _detect_vehicles_and_entities(image)
     return vehicles
 
 
@@ -1384,13 +1360,69 @@ def _associate_vehicles_plates_violations(
 # ============================================================
 
 def _detect_triple_riding(
-    image: np.ndarray,
-    motorcycles: Optional[List[Dict[str, Any]]] = None,
-    people: Optional[List[Dict[str, Any]]] = None,
+    image: np.ndarray
 ) -> List[Dict[str, Any]]:
 
-    if motorcycles is None or people is None:
-        _, motorcycles, people = _detect_vehicles_and_entities(image)
+    model = get_general_model()
+
+    if model is None:
+        return []
+
+    results = model.predict(
+        image,
+        conf=getattr(settings, "TRIPLE_RIDING_CONFIDENCE_THRESHOLD", 0.30),
+        verbose=False,
+    )
+
+    if not results:
+        return []
+
+    result = results[0]
+
+    if result.boxes is None:
+        return []
+
+    motorcycles = []
+    people = []
+
+    for box in result.boxes:
+
+        cls_id = int(
+            box.cls[0]
+        )
+
+        confidence = float(
+            box.conf[0]
+        )
+
+        coords = (
+            box.xyxy[0]
+            .tolist()
+        )
+
+        if (
+            cls_id
+            == settings.MOTORCYCLE_CLASS_ID
+        ):
+
+            motorcycles.append(
+                {
+                    "bbox": coords,
+                    "confidence": confidence,
+                }
+            )
+
+        elif (
+            cls_id
+            == settings.PERSON_CLASS_ID
+        ):
+
+            people.append(
+                {
+                    "bbox": coords,
+                    "confidence": confidence,
+                }
+            )
 
     violations = []
 
@@ -1469,7 +1501,6 @@ def _detect_triple_riding(
 def _detect_wrong_side(
     image: np.ndarray,
     detected_vehicles: List[Dict[str, Any]],
-    people: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Intelligent Wrong-Side Driving Detection:
@@ -1485,18 +1516,17 @@ def _detect_wrong_side(
     pose_model = get_pose_model()
     ws_model = get_wrong_side_model()
 
-    # 1. Use pre-detected persons if provided, otherwise detect once
-    if people is None:
-        people = []
-        if gen_model is not None:
-            gen_res = gen_model.predict(image, conf=0.25, verbose=False)
-            if gen_res and gen_res[0].boxes is not None:
-                for b in gen_res[0].boxes:
-                    if int(b.cls[0]) == settings.PERSON_CLASS_ID:
-                        people.append({
-                            "bbox": [float(x) for x in b.xyxy[0].tolist()],
-                            "confidence": float(b.conf[0]),
-                        })
+    # 1. Detect persons to identify active riders on two-wheelers
+    people = []
+    if gen_model is not None:
+        gen_res = gen_model.predict(image, conf=0.25, verbose=False)
+        if gen_res and gen_res[0].boxes is not None:
+            for b in gen_res[0].boxes:
+                if int(b.cls[0]) == settings.PERSON_CLASS_ID:
+                    people.append({
+                        "bbox": [float(x) for x in b.xyxy[0].tolist()],
+                        "confidence": float(b.conf[0]),
+                    })
 
     # Associate people to vehicles to filter for active (occupied) vehicles
     active_vehicles = []
@@ -1701,22 +1731,15 @@ def process_image(
             "Could not decode image."
         )
 
-    # Downscale high-resolution images to max 1280px for high-speed inference
-    orig_h, orig_w = image.shape[:2]
-    max_dim = 1280
-    if max(orig_h, orig_w) > max_dim:
-        scale_factor = max_dim / float(max(orig_h, orig_w))
-        image = cv2.resize(image, (int(orig_w * scale_factor), int(orig_h * scale_factor)), interpolation=cv2.INTER_AREA)
-
     violations_found = []
     boxes = []
 
     # ========================================================
-    # 1. DETECT VEHICLES & TRIPLE RIDING (SINGLE FORWARD PASS)
+    # 1. DETECT VEHICLES & TRIPLE RIDING
     # ========================================================
 
-    detected_vehicle_boxes, motorcycles, people = _detect_vehicles_and_entities(image)
-    triple_results = _detect_triple_riding(image, motorcycles=motorcycles, people=people)
+    detected_vehicle_boxes = _detect_vehicles(image)
+    triple_results = _detect_triple_riding(image)
 
     for item in triple_results:
         boxes.append(item)
@@ -1760,10 +1783,10 @@ def process_image(
                         violations_found.append("no_helmet")
 
     # ========================================================
-    # 3. WRONG SIDE VIOLATION DETECTION (REUSES DETECTED PEOPLE)
+    # 3. WRONG SIDE VIOLATION DETECTION
     # ========================================================
 
-    wrong_side_boxes = _detect_wrong_side(image, detected_vehicle_boxes, people=people)
+    wrong_side_boxes = _detect_wrong_side(image, detected_vehicle_boxes)
     for wsb in wrong_side_boxes:
         boxes.append(wsb)
         if "wrong_side" not in violations_found:
@@ -1807,23 +1830,24 @@ def process_image(
 
         scale_back = 1
 
-        # If normal detection fails, upscale the image moderately
+        # If normal detection fails, upscale the image.
         if (
             not plate_results
             or plate_results[0].boxes is None
             or len(plate_results[0].boxes) == 0
         ):
-            scale = 1.5
+            scale = 4
             enlarged_image = cv2.resize(
                 image,
                 None,
                 fx=scale,
                 fy=scale,
-                interpolation=cv2.INTER_LINEAR,
+                interpolation=cv2.INTER_CUBIC,
             )
             plate_results = plate_model.predict(
                 enlarged_image,
-                conf=0.08,
+                conf=0.01,
+                imgsz=1280,
                 verbose=False,
             )
             scale_back = scale
@@ -1889,21 +1913,17 @@ def process_image(
                     vh, vw = v_crop.shape[:2]
                     v_center = (vw // 2, vh // 2)
 
-                    found_plate_in_vehicle = False
                     for ang in v_angles:
-                        if ang != 0 and found_plate_in_vehicle:
-                            break
                         if ang == 0:
                             crop_test = v_crop
                             M_inv = None
                         else:
                             M = cv2.getRotationMatrix2D(v_center, ang, 1.0)
-                            crop_test = cv2.warpAffine(v_crop, M, (vw, vh), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
+                            crop_test = cv2.warpAffine(v_crop, M, (vw, vh), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
                             M_inv = cv2.invertAffineTransform(M)
 
                         v_res = plate_model.predict(crop_test, conf=0.15, verbose=False)[0]
                         if v_res.boxes is not None and len(v_res.boxes) > 0:
-                            found_plate_in_vehicle = True
                             for b in v_res.boxes:
                                 b_conf = float(b.conf[0])
                                 bx1, by1, bx2, by2 = [float(x) for x in b.xyxy[0].tolist()]

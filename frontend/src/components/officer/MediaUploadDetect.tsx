@@ -112,18 +112,18 @@ export const MediaUploadDetect: React.FC<MediaUploadDetectProps> = ({
     setResult(null);
     setIssuedNotification(null);
 
-    // Fast multi-stage AI pipeline
-    setAnalysisStep('1. Running YOLO Traffic Model on visual frames...');
-    await new Promise((r) => setTimeout(r, 60));
+    // Simulated multi-stage AI pipeline
+    setAnalysisStep('1. Running YOLOv8 Traffic Model on visual frames...');
+    await new Promise((r) => setTimeout(r, 600));
 
     setAnalysisStep('2. Detecting violation class (Helmet / Speed / Vector)...');
-    await new Promise((r) => setTimeout(r, 60));
+    await new Promise((r) => setTimeout(r, 600));
 
     setAnalysisStep('3. Applying ANPR (Automatic Number Plate Recognition) OCR...');
-    await new Promise((r) => setTimeout(r, 60));
+    await new Promise((r) => setTimeout(r, 600));
 
     setAnalysisStep('4. Querying Vahan / State RTO Vehicle Database...');
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 500));
 
     // Match preset or fallback
     const matchedPreset = samplePresets.find((p) => p.url === previewUrl) || samplePresets[0];
