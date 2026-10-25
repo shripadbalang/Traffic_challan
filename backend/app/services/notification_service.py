@@ -592,3 +592,25 @@ def notify_challan_paid(db: Session, challan: models.Challan, user: models.User,
         db.rollback()
 
     return email_sent
+
+
+def dispatch_challan_notifications_background(challan_ids: list, evidence_url: Optional[str] = None):
+    """
+    Background task to send email and SMS notifications without blocking the API request response.
+    Creates a dedicated session to prevent race conditions with request-bound sessions.
+    """
+    if not challan_ids:
+        return
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        for cid in challan_ids:
+            try:
+                challan = db.query(models.Challan).filter(models.Challan.id == cid).first()
+                if challan:
+                    send_challan_notification(db=db, challan=challan, evidence_url=evidence_url)
+            except Exception as e:
+                print(f"[BACKGROUND NOTIF ERROR] Failed dispatch for challan {cid}: {e}")
+    finally:
+        db.close()
+

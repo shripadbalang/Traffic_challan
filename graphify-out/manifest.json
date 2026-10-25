@@ -84,10 +84,10 @@
     "semantic_hash": "adeab719c4c775907a9c072c7ee72293"
   },
   "backend/app/routers/violations.py": {
-    "mtime": 1790531830.3660994,
-    "seen": 1792793487.9082217,
-    "ast_hash": "58645ba04d0fc3f3ba699618f85123ff",
-    "semantic_hash": "58645ba04d0fc3f3ba699618f85123ff"
+    "mtime": 1792920391.139346,
+    "seen": 1792920546.6193497,
+    "ast_hash": "e04621f64f8c343360cbe797fdef73d7",
+    "semantic_hash": ""
   },
   "backend/app/schemas.py": {
     "mtime": 1792911920.4038558,
@@ -114,10 +114,10 @@
     "semantic_hash": "b88dcc4605f723616bdfe3da1adb48a6"
   },
   "backend/app/services/notification_service.py": {
-    "mtime": 1790531744.803737,
-    "seen": 1792793487.915041,
-    "ast_hash": "3cb5c6073cb2ebda7e7eb6bcdaa4d685",
-    "semantic_hash": "3cb5c6073cb2ebda7e7eb6bcdaa4d685"
+    "mtime": 1792920286.422654,
+    "seen": 1792920546.6193497,
+    "ast_hash": "abd184cb2c3a12fa70a86b8f6eb10501",
+    "semantic_hash": ""
   },
   "backend/app/services/plate_matcher.py": {
     "mtime": 1790429517.7691848,
@@ -186,10 +186,10 @@
     "semantic_hash": "206eeb2d7ade32e0cfc8005bea9dc941"
   },
   "ml-service/app/detect.py": {
-    "mtime": 1790449838.4248276,
-    "seen": 1792793487.9165456,
-    "ast_hash": "3d20a28bfe1bd27a48fb5ab9376d850d",
-    "semantic_hash": "3d20a28bfe1bd27a48fb5ab9376d850d"
+    "mtime": 1792919976.1197078,
+    "seen": 1792920546.6193497,
+    "ast_hash": "6650c789b6f8da3324195946f35a4a8c",
+    "semantic_hash": ""
   },
   "ml-service/app/main.py": {
     "mtime": 1789834666.9362552,
@@ -702,16 +702,16 @@
     "semantic_hash": "689c5cdcdf81a70c2b398a87612c7e54"
   },
   "frontend/src/components/officer/MediaUploadDetect.tsx": {
-    "mtime": 1791904943.4214737,
-    "seen": 1792793487.9165456,
-    "ast_hash": "8c1880bf00cfb98191f06b753a982b95",
-    "semantic_hash": "8c1880bf00cfb98191f06b753a982b95"
+    "mtime": 1792920451.0981686,
+    "seen": 1792920546.6193497,
+    "ast_hash": "16d122cfb8ad2293dd11a36535ba8673",
+    "semantic_hash": ""
   },
   "frontend/src/components/officer/OfficerDashboard.tsx": {
-    "mtime": 1791904872.1426651,
-    "seen": 1792793487.9165456,
-    "ast_hash": "345549c598fac3a26be1aca72cdbbdd6",
-    "semantic_hash": "345549c598fac3a26be1aca72cdbbdd6"
+    "mtime": 1792920433.7972977,
+    "seen": 1792920546.6193497,
+    "ast_hash": "d154d65994b93e987e8496ffb7e030c7",
+    "semantic_hash": ""
   },
   "frontend/src/components/officer/OfficerLogin.tsx": {
     "mtime": 1792791355.0911436,
@@ -876,10 +876,10 @@
     "semantic_hash": "3d5009b56c1353c34a76d568edc71252"
   },
   "backend/app/routers/officer.py": {
-    "mtime": 1790531763.4807205,
-    "seen": 1792793487.9082217,
-    "ast_hash": "2d208855cf82b0d5753125d88b7a5509",
-    "semantic_hash": "2d208855cf82b0d5753125d88b7a5509"
+    "mtime": 1792920341.79898,
+    "seen": 1792920546.6193497,
+    "ast_hash": "c203c61ff3f6d9cd5b7037c11c2ff96a",
+    "semantic_hash": ""
   },
   "backend/app/core/audit.py": {
     "mtime": 1790363418.960082,
@@ -972,10 +972,10 @@
     "semantic_hash": "52826a0e580cd1d115eefd75344eeefa"
   },
   "frontend/src/components/officer/LiveCameraCapture.tsx": {
-    "mtime": 1790426571.445279,
-    "seen": 1792793487.9165456,
-    "ast_hash": "f37909939fe58c35a8d762000144d929",
-    "semantic_hash": "f37909939fe58c35a8d762000144d929"
+    "mtime": 1792920402.1140463,
+    "seen": 1792920546.6193497,
+    "ast_hash": "a37c16aa427d73690583b0f739d40cf0",
+    "semantic_hash": ""
   },
   "backend/app/services/violation_rules.py": {
     "mtime": 1790449712.5358438,
