@@ -2997,7 +2997,7 @@
       "file_type": "code",
       "norm_label": "cleanmobile10()",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L94"
+      "source_location": "L99"
     },
     {
       "id": "frontend_src_services_supabaseclient_getdemouserid",
@@ -3261,7 +3261,7 @@
       "file_type": "code",
       "norm_label": "buildapiurl()",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L63"
+      "source_location": "L68"
     },
     {
       "id": "frontend_src_services_api_buildevidenceurl",
@@ -3273,7 +3273,7 @@
       "file_type": "code",
       "norm_label": "buildevidenceurl()",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L71"
+      "source_location": "L76"
     },
     {
       "id": "agents_skills_ui_styling_scripts_shadcn_add_shadcninstaller_add_all_components",
@@ -7017,7 +7017,7 @@
       "file_type": "code",
       "norm_label": "apifetch()",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L84"
+      "source_location": "L89"
     },
     {
       "id": "frontend_src_services_api_checkbackendhealth",
@@ -7029,7 +7029,7 @@
       "file_type": "code",
       "norm_label": "checkbackendhealth()",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L107"
+      "source_location": "L112"
     },
     {
       "id": "frontend_src_services_api_getstoredanalytics",
@@ -7065,7 +7065,7 @@
       "file_type": "code",
       "norm_label": "handleresponsejson()",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L118"
+      "source_location": "L123"
     },
     {
       "id": "frontend_src_services_api_savestoredanalytics",
@@ -16985,7 +16985,7 @@
       "file_type": "code",
       "norm_label": "api",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L168"
+      "source_location": "L173"
     },
     {
       "id": "ref_lucide_react",
@@ -51378,7 +51378,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L85",
+      "source_location": "L90",
       "weight": 1.0
     },
     {
@@ -51390,7 +51390,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L73",
+      "source_location": "L78",
       "weight": 1.0
     },
     {
@@ -51402,7 +51402,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L109",
+      "source_location": "L114",
       "weight": 1.0
     },
     {
@@ -99156,7 +99156,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L107",
+      "source_location": "L112",
       "weight": 1.0
     },
     {
@@ -99167,7 +99167,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L118",
+      "source_location": "L123",
       "weight": 1.0
     },
     {
@@ -99178,7 +99178,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L168",
+      "source_location": "L173",
       "weight": 1.0
     },
     {
@@ -99255,7 +99255,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L63",
+      "source_location": "L68",
       "weight": 1.0
     },
     {
@@ -99266,7 +99266,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L71",
+      "source_location": "L76",
       "weight": 1.0
     },
     {
@@ -99277,7 +99277,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L84",
+      "source_location": "L89",
       "weight": 1.0
     },
     {
@@ -99299,7 +99299,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/services/api.ts",
-      "source_location": "L94",
+      "source_location": "L99",
       "weight": 1.0
     },
     {
@@ -111707,5 +111707,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "d3f68813343b29821365ed46a78c58623b80bb9e"
+  "built_at_commit": "6740dcafea477372cc7f64c3be2cd05f42feb671"
 }

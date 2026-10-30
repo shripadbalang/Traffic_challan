@@ -58,7 +58,12 @@ export function saveStoredAnalytics(analytics: AnalyticsData) {
 }
 
 // API Base URL configuration for production vs local dev
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== 'undefined' && (window.location.hostname.includes('pages.dev') || window.location.hostname.includes('balangshripad.dev'))
+    ? 'https://getting-hamburger-cradle.ngrok-free.dev'
+    : '')
+).replace(/\/+$/, '');
 
 export function buildApiUrl(endpoint: string): string {
   if (!API_BASE_URL || endpoint.startsWith('http://') || endpoint.startsWith('https://')) {

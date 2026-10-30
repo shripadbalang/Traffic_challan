@@ -744,9 +744,9 @@
     "semantic_hash": "237c00790ba23bfc7e572613f1c8ec47"
   },
   "frontend/src/services/api.ts": {
-    "mtime": 1793301861.6899467,
-    "seen": 1793335209.8624961,
-    "ast_hash": "2d7d254e44db363793fd160729c9f861",
+    "mtime": 1793339529.400431,
+    "seen": 1793339587.4392438,
+    "ast_hash": "0e0c3998a6c89e3f960831b9b9c34525",
     "semantic_hash": ""
   },
   "frontend/src/services/mockData.ts": {
