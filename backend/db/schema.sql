@@ -58,6 +58,7 @@ CREATE TABLE challans (
     location VARCHAR,
     latitude FLOAT,
     longitude FLOAT,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT now()
 );
 

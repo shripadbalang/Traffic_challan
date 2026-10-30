@@ -236,6 +236,8 @@ class OwnerChallanOut(BaseModel):
     evidence_url: Optional[str] = None
     evidence_type: Optional[str] = None
     evidence_missing_reason: Optional[str] = None
+    notes: Optional[str] = None
+    violations_breakdown: Optional[dict] = None
 
 
 # ---------- Vehicle / Mock Vahan ----------
@@ -300,6 +302,8 @@ class ChallanOut(BaseModel):
     violation_datetime: datetime
     location: Optional[str]
     created_at: datetime
+    notes: Optional[str] = None
+    violations_breakdown: Optional[dict] = None
     email_sent: Optional[bool] = None
     email_status: Optional[str] = None
     recipient_email: Optional[str] = None
@@ -457,6 +461,23 @@ class AdminUpdateVehicleRequest(BaseModel):
     @classmethod
     def clean_owner_mobile(cls, v: Any) -> Any:
         return clean_mobile_str(v)
+
+
+class FineSettingsOut(BaseModel):
+    fine_helmet: int
+    fine_triple_riding: int
+    fine_wrong_side: int
+    fine_all_three_combined: int
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+class FineSettingsUpdate(BaseModel):
+    fine_helmet: int = Field(..., ge=0, description="Helmet violation fine amount in whole rupees")
+    fine_triple_riding: int = Field(..., ge=0, description="Triple riding fine amount in whole rupees")
+    fine_wrong_side: int = Field(..., ge=0, description="Wrong-side driving fine amount in whole rupees")
+    fine_all_three_combined: int = Field(..., ge=0, description="All three violations package fine in whole rupees")
+
 
 
 

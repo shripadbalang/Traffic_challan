@@ -9,8 +9,10 @@ import {
   Building2,
   Clock,
   Search,
+  Camera,
+  CreditCard,
 } from 'lucide-react';
-import { api, getStoredChallans } from '../../services/api';
+import { api, getStoredChallans, buildApiUrl } from '../../services/api';
 
 interface VerificationData {
   receipt_number: string | null;
@@ -22,6 +24,8 @@ interface VerificationData {
   paid_at: string | null;
   transaction_id: string | null;
   is_verified: boolean;
+  has_evidence?: boolean;
+  evidence_url?: string | null;
 }
 
 export const VerifyReceipt: React.FC = () => {
@@ -257,6 +261,46 @@ export const VerifyReceipt: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Photographic Evidence Snapshot */}
+                {data.has_evidence && data.evidence_url && (
+                  <div className="border border-[#E2E8F0] dark:border-[#1E293B] rounded-xl overflow-hidden p-4 bg-[#F8FAFC] dark:bg-[#0D1524] space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#172033] dark:text-[#F1F5F9] flex items-center gap-1.5">
+                        <Camera className="w-4 h-4 text-[#3B82F6]" /> Violation Photographic Evidence
+                      </span>
+                      <span className="text-[11px] font-semibold text-[#16856B] bg-[#ECFDF5] dark:bg-[#10B981]/15 px-2 py-0.5 rounded border border-[#A7F3D0] dark:border-[#10B981]/30">
+                        AI Certified Capture
+                      </span>
+                    </div>
+                    <div className="rounded-lg overflow-hidden border border-[#E2E8F0] dark:border-[#1E293B] bg-black/5 dark:bg-black/40 flex items-center justify-center min-h-[220px]">
+                      <img
+                        src={buildApiUrl(data.evidence_url)}
+                        alt={`Violation Evidence for #${data.challan_id}`}
+                        className="max-h-72 w-full object-contain mx-auto"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Unpaid Challan Notice & Online Payment CTA */}
+                {data.status === 'PENDING' && (
+                  <div className="p-4 rounded-xl bg-[#FFFBEB] dark:bg-[#78350F]/20 border border-[#FDE68A] dark:border-[#F59E0B]/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold text-[#B45309] dark:text-[#FBBF24]">Payment Required</p>
+                      <p className="text-[11px] text-[#92400E] dark:text-[#FDE68A]">Please settle the fine of ₹{Number(data.amount).toLocaleString('en-IN')} to clear violation.</p>
+                    </div>
+                    <Link
+                      to="/citizen/challans"
+                      className="px-4 py-2 bg-[#D97706] hover:bg-[#B45309] text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 whitespace-nowrap"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" /> Pay Challan Online
+                    </Link>
+                  </div>
+                )}
 
                 {/* Audit Timestamp Notice */}
                 <div className="flex items-center justify-between text-[11px] text-[#64748B] dark:text-[#94A3B8] pt-1">

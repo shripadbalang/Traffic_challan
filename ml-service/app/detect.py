@@ -1356,11 +1356,22 @@ def _associate_vehicles_plates_violations(
         target_v = vehicles_with_plates[0]
         v_type = (target_v.get("vehicle_type") or "").lower()
         for viol in all_violations:
-            if viol in ("no_helmet", "triple_riding") and v_type in ("car", "truck", "bus", "heavy"):
-                continue
+            if viol in ("no_helmet", "triple_riding"):
+                # STRICT RULE: Only confirmed motorcycles can ever receive helmet or triple-riding violations
+                if v_type != "motorcycle":
+                    continue
             already_assigned = any(viol in v["violations_found"] for v in detected_vehicles)
             if not already_assigned:
                 target_v["violations_found"].append(viol)
+
+    # STRICT SAFETY ENFORCEMENT: Cars, trucks, buses, and other non-motorcycles must NEVER carry helmet or triple-riding violations
+    for veh in detected_vehicles:
+        v_type = (veh.get("vehicle_type") or "").lower()
+        if v_type != "motorcycle":
+            veh["violations_found"] = [
+                v for v in veh.get("violations_found", [])
+                if v not in ("no_helmet", "triple_riding")
+            ]
 
     for idx, veh in enumerate(detected_vehicles, 1):
         veh["vehicle_id"] = idx
@@ -1375,48 +1386,82 @@ def _associate_vehicles_plates_violations(
 def _assign_riders_to_motorcycles(
     motorcycles: List[Dict[str, Any]],
     people: List[Dict[str, Any]],
+    four_wheelers: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[int, List[Dict[str, Any]]]:
     """
     Exclusively assigns each detected person to the single motorcycle they are riding.
     Evaluates horizontal alignment, vertical astride relationship, and spatial overlap.
-    Ensures riders from neighboring vehicles are not combined.
+    Ensures riders from neighboring vehicles are not combined, pedestrians/bystanders are excluded,
+    and occupants of cars, trucks, buses, or other four-wheelers are never assigned to motorcycles.
     """
     moto_riders: Dict[int, List[Dict[str, Any]]] = {i: [] for i in range(len(motorcycles))}
     if not motorcycles or not people:
         return moto_riders
 
+    four_wheelers = four_wheelers or []
+
     for p in people:
         px1, py1, px2, py2 = p["bbox"]
-        pw = px2 - px1
-        ph = py2 - py1
+        pw = max(1.0, px2 - px1)
+        ph = max(1.0, py2 - py1)
+        p_area = pw * ph
         px_c = (px1 + px2) / 2.0
+        py_c = (py1 + py2) / 2.0
+
+        # 1. Four-Wheeler Occupant Suppression:
+        # Check if person is inside, on, or contained within any car/truck/bus
+        is_car_occupant = False
+        for fw in four_wheelers:
+            fx1, fy1, fx2, fy2 = fw["bbox"]
+            ix1 = max(px1, fx1)
+            iy1 = max(py1, fy1)
+            ix2 = min(px2, fx2)
+            iy2 = min(py2, fy2)
+            inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+            containment = inter / p_area
+
+            # If person is largely inside the four-wheeler box or person center is inside car cabin
+            if containment >= 0.35 or (fx1 <= px_c <= fx2 and fy1 <= py_c <= fy2):
+                is_car_occupant = True
+                break
+
+        if is_car_occupant:
+            # Person is an occupant of a car/four-wheeler; NEVER assign as motorcycle rider
+            continue
 
         best_m = None
         best_score = -1.0
 
         for i, m in enumerate(motorcycles):
             mx1, my1, mx2, my2 = m["bbox"]
-            mw = mx2 - mx1
-            mh = my2 - my1
+            mw = max(1.0, mx2 - mx1)
+            mh = max(1.0, my2 - my1)
 
-            # Rider must align horizontally with motorcycle body (allow slight lean margin)
-            if not (mx1 - 0.20 * mw <= px_c <= mx2 + 0.20 * mw):
+            # Rider must align horizontally with motorcycle body
+            if not (mx1 - 0.15 * mw <= px_c <= mx2 + 0.15 * mw):
                 continue
 
             # Rider must be sitting on/astride the vehicle:
-            # Person bottom py2 must reach into motorcycle vertical span, and person top py1 cannot be entirely below
-            if py2 < my1 + 0.10 * mh or py1 > my2:
+            # Rider's head/torso py1 must be above or near the motorcycle top
+            if py1 > my1 + 0.50 * mh:
+                continue
+
+            # Rider's lower body py2 must reach into motorcycle vertical span
+            if py2 < my1 + 0.20 * mh:
+                continue
+
+            # Pedestrian check: Rider's feet cannot extend far below the motorcycle's wheels/ground plane
+            if py2 > my2 + 0.20 * mh:
                 continue
 
             inter_x = max(0.0, min(mx2, px2) - max(mx1, px1))
             inter_y = max(0.0, min(my2, py2) - max(my1, py1))
             inter = inter_x * inter_y
-            p_area = max(1.0, pw * ph)
             frac = inter / p_area
             iou = _iou(p["bbox"], m["bbox"])
-            score = frac * 2.0 + iou
+            score = frac * 2.5 + iou
 
-            if score > best_score and (frac >= 0.15 or iou >= 0.08):
+            if score > best_score and (frac >= 0.20 or iou >= 0.10):
                 best_score = score
                 best_m = i
 
@@ -1430,6 +1475,7 @@ def _detect_triple_riding(
     image: np.ndarray,
     precomputed_motorcycles: Optional[List[Dict[str, Any]]] = None,
     precomputed_people: Optional[List[Dict[str, Any]]] = None,
+    precomputed_four_wheelers: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Detects triple riding: counts distinct riders on each individual two-wheeler.
@@ -1439,6 +1485,7 @@ def _detect_triple_riding(
     if precomputed_motorcycles is not None and precomputed_people is not None:
         motorcycles = precomputed_motorcycles
         people = precomputed_people
+        four_wheelers = precomputed_four_wheelers or []
     else:
         model = get_general_model()
         if model is None:
@@ -1453,6 +1500,7 @@ def _detect_triple_riding(
             return []
 
         motorcycles = []
+        four_wheelers = []
         people = []
         for box in results[0].boxes:
             cls_id = int(box.cls[0])
@@ -1460,13 +1508,26 @@ def _detect_triple_riding(
             coords = box.xyxy[0].tolist()
             if cls_id == settings.MOTORCYCLE_CLASS_ID:
                 motorcycles.append({"bbox": coords, "confidence": confidence})
+            elif cls_id in (2, 5, 7): # car, bus, truck
+                four_wheelers.append({"bbox": coords, "confidence": confidence})
             elif cls_id == settings.PERSON_CLASS_ID:
                 people.append({"bbox": coords, "confidence": confidence})
 
-    violations = []
-    moto_riders = _assign_riders_to_motorcycles(motorcycles, people)
+    # Filter out false motorcycle detections that overlap significantly with cars/trucks/buses
+    filtered_motorcycles = []
+    for m in motorcycles:
+        is_fw_overlap = False
+        for fw in four_wheelers:
+            if (_iou(m["bbox"], fw["bbox"]) > 0.35 or _box_containment(m["bbox"], fw["bbox"]) > 0.45) and fw.get("confidence", 0) >= m.get("confidence", 0) - 0.10:
+                is_fw_overlap = True
+                break
+        if not is_fw_overlap:
+            filtered_motorcycles.append(m)
 
-    for i, motorcycle in enumerate(motorcycles):
+    violations = []
+    moto_riders = _assign_riders_to_motorcycles(filtered_motorcycles, people, four_wheelers=four_wheelers)
+
+    for i, motorcycle in enumerate(filtered_motorcycles):
         motorcycle_box = motorcycle["bbox"]
         associated_people = moto_riders.get(i, [])
         people_count = len(associated_people)
@@ -1487,15 +1548,12 @@ def _detect_triple_riding(
     return violations
 
 
-# ============================================================
-# HELMET DETECTION
-# ============================================================
-
 def _detect_helmets(
     image: np.ndarray,
     motorcycles: List[Dict[str, Any]],
     people: List[Dict[str, Any]],
     existing_boxes: List[Dict[str, Any]],
+    four_wheelers: Optional[List[Dict[str, Any]]] = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Detects riders and helmet status separately.
@@ -1507,6 +1565,7 @@ def _detect_helmets(
     if helmet_model is None or not motorcycles:
         return [], []
 
+    four_wheelers = four_wheelers or []
     h_orig, w_orig = image.shape[:2]
 
     # 1. Full image pass with helmet model (captures both 'with helmet' and 'without helmet')
@@ -1522,19 +1581,27 @@ def _detect_helmets(
             conf = float(box.conf[0])
             class_name = str(helmet_model.names[cls_id]).lower()
             coords = [float(x) for x in box.xyxy[0].tolist()]
+
+            # Discard any helmet detection that is inside a four-wheeler (car, bus, truck)
+            hx_c = (coords[0] + coords[2]) / 2.0
+            hy_c = (coords[1] + coords[3]) / 2.0
+            is_in_car = False
+            for fw in four_wheelers:
+                fx1, fy1, fx2, fy2 = fw["bbox"]
+                if fx1 <= hx_c <= fx2 and fy1 <= hy_c <= fy2:
+                    is_in_car = True
+                    break
+            if is_in_car:
+                continue
+
             global_hel_boxes.append({
                 "class_name": class_name,
                 "confidence": conf,
                 "bbox": coords,
             })
-            existing_boxes.append({
-                "class_name": class_name,
-                "confidence": conf,
-                "bbox": coords,
-            })
 
-    # 2. Exclusively assign riders to motorcycles
-    moto_riders = _assign_riders_to_motorcycles(motorcycles, people)
+    # 2. Exclusively assign riders to motorcycles (excluding car occupants and pedestrians)
+    moto_riders = _assign_riders_to_motorcycles(motorcycles, people, four_wheelers=four_wheelers)
     helmet_violation_boxes: List[Dict[str, Any]] = []
 
     for i, moto in enumerate(motorcycles):
@@ -1578,6 +1645,7 @@ def _detect_helmets(
                     best_viol_box = wo_h[0]["bbox"]
                 elif with_h:
                     is_no_helmet = False
+                    existing_boxes.append(with_h[0])
             else:
                 # If full-image pass missed the head due to scale/viewing angle, analyze rider crop
                 cy1 = max(0, ry1 - int(0.10 * rh))
@@ -1595,14 +1663,23 @@ def _detect_helmets(
                             best_conf = float(c_wo[0].conf[0])
                             bx1, by1, bx2, by2 = [float(x) for x in c_wo[0].xyxy[0].tolist()]
                             best_viol_box = [bx1 + cx1, by1 + cy1, bx2 + cx1, by2 + cy1]
+                        elif c_with:
+                            bx1, by1, bx2, by2 = [float(x) for x in c_with[0].xyxy[0].tolist()]
+                            existing_boxes.append({
+                                "class_name": "with helmet",
+                                "confidence": float(c_with[0].conf[0]),
+                                "bbox": [bx1 + cx1, by1 + cy1, bx2 + cx1, by2 + cy1],
+                            })
 
             if is_no_helmet:
-                helmet_violation_boxes.append({
+                viol_box_item = {
                     "class_name": settings.HELMET_VIOLATION_CLASS_NAME.lower(),
                     "confidence": best_conf,
                     "bbox": [float(x) for x in best_viol_box],
                     "motorcycle_bbox": [float(x) for x in moto["bbox"]],
-                })
+                }
+                helmet_violation_boxes.append(viol_box_item)
+                existing_boxes.append(viol_box_item)
 
     return helmet_violation_boxes, global_hel_boxes
 
@@ -1861,6 +1938,7 @@ def process_image(
     gen_model = get_general_model()
     detected_vehicle_boxes = []
     precomputed_motorcycles = []
+    precomputed_four_wheelers = []
     precomputed_people = []
 
     if gen_model is not None:
@@ -1882,16 +1960,38 @@ def process_image(
                             "bbox": coords,
                             "confidence": confidence,
                         })
+                    elif cls_id in (2, 5, 7): # car, bus, truck (four-wheelers)
+                        precomputed_four_wheelers.append({
+                            "class_name": VEHICLE_CLASS_NAMES[cls_id],
+                            "bbox": coords,
+                            "confidence": confidence,
+                        })
                 elif cls_id == settings.PERSON_CLASS_ID:
                     precomputed_people.append({
                         "bbox": coords,
                         "confidence": confidence,
                     })
 
+    # Filter out false motorcycle detections that overlap significantly with cars/trucks/buses
+    valid_motorcycles = []
+    for m in precomputed_motorcycles:
+        is_car_overlap = False
+        for fw in precomputed_four_wheelers:
+            iou = _iou(m["bbox"], fw["bbox"])
+            cont = _box_containment(m["bbox"], fw["bbox"])
+            if (iou > 0.35 or cont > 0.45) and fw.get("confidence", 0) >= m.get("confidence", 0) - 0.10:
+                is_car_overlap = True
+                print(f"[ml-service] Suppressed false motorcycle detection overlapping with {fw['class_name']} (iou={iou:.2f}, cont={cont:.2f})")
+                break
+        if not is_car_overlap:
+            valid_motorcycles.append(m)
+    precomputed_motorcycles = valid_motorcycles
+
     triple_results = _detect_triple_riding(
         image,
         precomputed_motorcycles=precomputed_motorcycles,
         precomputed_people=precomputed_people,
+        precomputed_four_wheelers=precomputed_four_wheelers,
     )
 
     for item in triple_results:
@@ -1908,6 +2008,7 @@ def process_image(
         motorcycles=precomputed_motorcycles,
         people=precomputed_people,
         existing_boxes=boxes,
+        four_wheelers=precomputed_four_wheelers,
     )
 
     for hb in helmet_boxes:
@@ -2229,13 +2330,26 @@ def process_image(
         primary_plate_confidence = best_p["confidence"]
 
     # ========================================================
-    # 7. RESULT
+    # 7. RESULT (Verified vehicle-associated violations)
     # ========================================================
+
+    # Construct verified violations_found list
+    # Only report violations that are confirmed on at least one detected vehicle
+    # or confirmed wrong_side
+    verified_violations = []
+    for v in detected_vehicles:
+        for viol in v.get("violations_found", []):
+            if viol not in verified_violations:
+                verified_violations.append(viol)
+
+    # Allow scene-level wrong_side if confirmed in wrong_side_boxes
+    if wrong_side_boxes and "wrong_side" not in verified_violations:
+        verified_violations.append("wrong_side")
 
     total_time_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
     return {
-        "violations_found": violations_found,
+        "violations_found": verified_violations,
         "plate_number": primary_plate_number,
         "plate_confidence": primary_plate_confidence,
         "boxes": boxes,

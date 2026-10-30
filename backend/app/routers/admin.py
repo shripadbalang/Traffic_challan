@@ -1900,3 +1900,152 @@ def update_system_settings(
         "message": f"Successfully updated {len(updated_keys)} system settings.",
         "updated_keys": updated_keys,
     }
+
+
+# ==============================================================================
+# 12. CHALLAN FINE SETTINGS & STATUTORY PENALTIES
+# ==============================================================================
+
+@router.get("/fine-settings", response_model=schemas.FineSettingsOut)
+def get_fine_settings(
+    db: Session = Depends(get_db),
+    _admin=Depends(require_role("admin")),
+):
+    from app.services.challan_engine import get_fine_rates
+    rates = get_fine_rates(db)
+
+    rec = db.query(models.SystemSetting).filter(models.SystemSetting.key == "fine_helmet").first()
+    updated_at_str = rec.updated_at.isoformat() if rec and rec.updated_at else None
+    updated_by_str = str(rec.updated_by) if rec and rec.updated_by else None
+
+    return schemas.FineSettingsOut(
+        fine_helmet=int(rates["fine_helmet"]),
+        fine_triple_riding=int(rates["fine_triple_riding"]),
+        fine_wrong_side=int(rates["fine_wrong_side"]),
+        fine_all_three_combined=int(rates["fine_all_three_combined"]),
+        updated_at=updated_at_str,
+        updated_by=updated_by_str,
+    )
+
+
+@router.put("/fine-settings", response_model=schemas.FineSettingsOut)
+def update_fine_settings(
+    payload: schemas.FineSettingsUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin_user=Depends(require_role("admin")),
+):
+    """
+    Admin updates statutory fine rates.
+    Changes apply strictly to newly generated challans.
+    Previously issued challans retain their recorded fine amounts.
+    """
+    key_map = {
+        "fine_helmet": payload.fine_helmet,
+        "fine_triple_riding": payload.fine_triple_riding,
+        "fine_wrong_side": payload.fine_wrong_side,
+        "fine_all_three_combined": payload.fine_all_three_combined,
+    }
+
+    now = datetime.utcnow()
+    for k, v in key_map.items():
+        rec = db.query(models.SystemSetting).filter(models.SystemSetting.key == k).first()
+        if rec:
+            rec.value = str(v)
+            rec.updated_at = now
+            rec.updated_by = admin_user.id
+        else:
+            db.add(models.SystemSetting(
+                key=k,
+                value=str(v),
+                description=f"Statutory fine rate for {k}",
+                updated_at=now,
+                updated_by=admin_user.id,
+            ))
+
+    vt_map = {
+        "NO_HELMET": float(payload.fine_helmet),
+        "TRIPLE_RIDING": float(payload.fine_triple_riding),
+        "WRONG_SIDE_DRIVING": float(payload.fine_wrong_side),
+        "COMBINED_VIOLATION": float(payload.fine_all_three_combined),
+    }
+    for code, amt in vt_map.items():
+        vt = db.query(models.ViolationType).filter(models.ViolationType.code == code).first()
+        if vt:
+            vt.base_fine_amount = amt
+
+    db.commit()
+
+    client_ip = request.client.host if request.client else "unknown"
+    log_audit_event(
+        db=db,
+        action="fine_rates_updated",
+        target_resource="fine_settings",
+        user=admin_user,
+        details=f"Admin updated statutory rates: Helmet=₹{payload.fine_helmet}, Triple=₹{payload.fine_triple_riding}, WrongSide=₹{payload.fine_wrong_side}, Combined=₹{payload.fine_all_three_combined}.",
+        ip_address=client_ip,
+        status="SUCCESS",
+    )
+
+    return schemas.FineSettingsOut(
+        fine_helmet=payload.fine_helmet,
+        fine_triple_riding=payload.fine_triple_riding,
+        fine_wrong_side=payload.fine_wrong_side,
+        fine_all_three_combined=payload.fine_all_three_combined,
+        updated_at=now.isoformat(),
+        updated_by=str(admin_user.id),
+    )
+
+
+class ResetHistoryPayload(schemas.BaseModel):
+    confirm: str
+
+
+@router.post("/reset-challan-history")
+def reset_challan_history(
+    payload: ResetHistoryPayload,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin_user=Depends(require_role("admin")),
+):
+    """
+    Safely resets demo/test challan history to 0 challans.
+    Preserves all users, registered vehicles, officers, fine settings, and audit logs.
+    Preserves referential integrity by cleaning dependent records.
+    """
+    if payload.confirm != "RESET_ALL_CHALLANS":
+        raise HTTPException(
+            status_code=400,
+            detail="Confirmation phrase mismatch. Please enter 'RESET_ALL_CHALLANS' to confirm history reset.",
+        )
+
+    # 1. Remove notifications attached to challans
+    db.query(models.Notification).filter(models.Notification.challan_id.isnot(None)).delete(synchronize_session=False)
+
+    # 2. Remove payments attached to challans
+    db.query(models.Payment).filter(models.Payment.challan_id.isnot(None)).delete(synchronize_session=False)
+
+    # 3. Remove evidence attached to challans
+    db.query(models.Evidence).filter(models.Evidence.challan_id.isnot(None)).delete(synchronize_session=False)
+
+    # 4. Remove all challans
+    deleted_challans = db.query(models.Challan).delete(synchronize_session=False)
+
+    db.commit()
+
+    client_ip = request.client.host if request.client else "unknown"
+    log_audit_event(
+        db=db,
+        action="challan_history_reset",
+        target_resource="challans",
+        user=admin_user,
+        details=f"Admin initiated authorized reset: cleared {deleted_challans} demo/test challans.",
+        ip_address=client_ip,
+        status="SUCCESS",
+    )
+
+    return {
+        "success": True,
+        "message": f"Successfully cleared {deleted_challans} test/demo challans. Challan count is now 0.",
+        "deleted_count": deleted_challans,
+    }

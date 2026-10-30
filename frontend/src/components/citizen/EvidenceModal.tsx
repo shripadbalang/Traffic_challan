@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ImageOff, ShieldAlert } from 'lucide-react';
 import { Challan } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { buildApiUrl } from '../../services/api';
 
 interface EvidenceModalProps {
   challan: Challan | null;
@@ -12,9 +13,15 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ challan, onClose }
   const [imageError, setImageError] = useState(false);
   const { t, translateViolation, formatDate, formatCurrency } = useLanguage();
 
+  useEffect(() => {
+    setImageError(false);
+  }, [challan?.id]);
+
   if (!challan) return null;
 
-  const showFallback = !challan.hasEvidence || !challan.evidenceUrl || imageError;
+  const rawUrl = challan.evidenceUrl || (challan.id ? `/files/evidence/challan_${challan.id}.jpg` : '');
+  const mediaUrl = rawUrl ? buildApiUrl(rawUrl) : '';
+  const showFallback = !mediaUrl || imageError;
   const plate = challan.vehiclePlate || '';
 
   return (
@@ -77,9 +84,9 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ challan, onClose }
           {!showFallback ? (
             <div className="rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-[#1E293B] bg-[#F7F9FC] dark:bg-[#0D1524] flex items-center justify-center min-h-[220px]">
               <img
-                src={challan.evidenceUrl || undefined}
+                src={mediaUrl}
                 alt={`Violation Evidence for ${challan.id}`}
-                className="w-full max-h-72 object-contain mx-auto"
+                className="w-full max-h-72 object-contain mx-auto rounded-lg shadow-sm"
                 onError={() => setImageError(true)}
               />
             </div>

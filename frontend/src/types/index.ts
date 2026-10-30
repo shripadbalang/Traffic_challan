@@ -72,6 +72,20 @@ export interface Challan {
     method: string;
     receiptPdfPath?: string;
   };
+  notes?: string | null;
+  violationsBreakdown?: {
+    is_combined?: boolean;
+    violations?: Array<{
+      code: string;
+      name: string;
+      fine: number;
+      legal_section?: string;
+    }>;
+    original_total?: number;
+    special_discount?: number;
+    final_amount?: number;
+    rule_applied?: string;
+  } | null;
   disputeReason?: string;
   disputeStatus?: 'under_review' | 'approved' | 'rejected';
 }

@@ -1369,6 +1369,7 @@ export const OfficerDashboard: React.FC = () => {
                                 vehiclePlate: c.vehicle_number,
                                 violation: c.violation,
                                 fineAmount: c.fine_amount,
+                                hasEvidence: true,
                                 evidenceUrl: c.evidence_url,
                               })
                             }

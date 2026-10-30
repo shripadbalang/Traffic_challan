@@ -68,6 +68,19 @@ export function buildApiUrl(endpoint: string): string {
   return `${API_BASE_URL}${clean}`;
 }
 
+export function buildEvidenceUrl(rawUrl: string): string {
+  if (!rawUrl) return '';
+  const url = buildApiUrl(rawUrl);
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('auth_token');
+    if (token && (url.includes('/evidence') || url.includes('/challans/')) && !url.includes('token=')) {
+      const sep = url.includes('?') ? '&' : '?';
+      return `${url}${sep}token=${encodeURIComponent(token)}`;
+    }
+  }
+  return url;
+}
+
 export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
   const url = buildApiUrl(input);
   const headers = new Headers(init?.headers);
@@ -1120,6 +1133,57 @@ export const api = {
     return await handleResponseJson(res, 'Failed to update system settings.');
   },
 
+  async getAdminFineSettings(): Promise<{
+    fine_helmet: number;
+    fine_triple_riding: number;
+    fine_wrong_side: number;
+    fine_all_three_combined: number;
+    updated_at?: string;
+    updated_by?: string;
+  }> {
+    const token = localStorage.getItem('auth_token');
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await apiFetch('/admin/fine-settings', { headers });
+    return await handleResponseJson(res, 'Failed to fetch fine settings.');
+  },
+
+  async updateAdminFineSettings(payload: {
+    fine_helmet: number;
+    fine_triple_riding: number;
+    fine_wrong_side: number;
+    fine_all_three_combined: number;
+  }): Promise<any> {
+    const token = localStorage.getItem('auth_token');
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await apiFetch('/admin/fine-settings', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    return await handleResponseJson(res, 'Failed to update fine settings.');
+  },
+
+  async resetChallanHistory(): Promise<any> {
+    const token = localStorage.getItem('auth_token');
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await apiFetch('/admin/reset-challan-history', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ confirm: 'RESET_ALL_CHALLANS' }),
+    });
+    const data = await handleResponseJson(res, 'Failed to reset challan history.');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('echallan_data_challans', JSON.stringify([]));
+    }
+    return data;
+  },
+
 
 
   // Fetch strictly the authenticated owner's vehicles from backend
@@ -1160,21 +1224,34 @@ export const api = {
       const res = await apiFetch(url, { headers });
       if (res.ok) {
         const data = await res.json();
-        return data.map((c: any) => ({
-          id: c.id,
-          vehiclePlate: c.vehicle_plate,
-          violation: c.violation_name,
-          violationCode: c.violation_code,
-          fineAmount: c.fine_amount,
-          status: c.status,
-          violationDatetime: c.violation_datetime,
-          location: c.location,
-          paymentDate: c.payment_date,
-          hasEvidence: c.has_evidence,
-          evidenceUrl: c.evidence_url,
-          evidenceType: c.evidence_type,
-          evidenceMissingReason: c.evidence_missing_reason || (c.has_evidence ? null : 'Evidence image is not available.'),
-        }));
+        const list = Array.isArray(data) ? data : (data.items || []);
+        const mapped = list.map((c: any) => {
+          let breakdown = c.violations_breakdown;
+          if (!breakdown && c.notes) {
+            try { breakdown = JSON.parse(c.notes); } catch {}
+          }
+          return {
+            id: c.id,
+            vehiclePlate: c.vehicle_plate,
+            violation: c.violation_name,
+            violationCode: c.violation_code,
+            fineAmount: c.fine_amount,
+            status: c.status,
+            violationDatetime: c.violation_datetime,
+            location: c.location,
+            paymentDate: c.payment_date,
+            hasEvidence: Boolean(c.has_evidence ?? true),
+            evidenceUrl: c.evidence_url ? buildEvidenceUrl(c.evidence_url) : (c.id ? buildEvidenceUrl(`/challans/${c.id}/evidence`) : null),
+            evidenceType: c.evidence_type || 'image',
+            evidenceMissingReason: c.evidence_missing_reason || null,
+            notes: c.notes,
+            violationsBreakdown: breakdown,
+          };
+        });
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(CHALLANS_KEY, JSON.stringify(mapped));
+        }
+        return mapped;
       }
     } catch {
       // Fallback to local storage if network error
@@ -1193,6 +1270,10 @@ export const api = {
     if (!res.ok) {
       throw new Error(data.detail || 'Failed to fetch challan details.');
     }
+    let detailBreakdown = data.violations_breakdown;
+    if (!detailBreakdown && data.notes) {
+      try { detailBreakdown = JSON.parse(data.notes); } catch {}
+    }
     return {
       id: data.id,
       vehiclePlate: data.vehicle_plate,
@@ -1203,11 +1284,13 @@ export const api = {
       violationDatetime: data.violation_datetime,
       location: data.location,
       paymentDate: data.payment_date,
-      hasEvidence: data.has_evidence,
-      evidenceUrl: data.evidence_url,
-      evidenceType: data.evidence_type,
-      evidenceMissingReason: data.evidence_missing_reason || (data.has_evidence ? null : 'Evidence image is not available.'),
+      hasEvidence: Boolean(data.has_evidence ?? true),
+      evidenceUrl: data.evidence_url ? buildEvidenceUrl(data.evidence_url) : (data.id ? buildEvidenceUrl(`/challans/${data.id}/evidence`) : null),
+      evidenceType: data.evidence_type || 'image',
+      evidenceMissingReason: data.evidence_missing_reason || null,
       evidence: data.evidence || [],
+      notes: data.notes,
+      violationsBreakdown: detailBreakdown,
     };
   },
 

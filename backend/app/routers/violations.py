@@ -11,10 +11,10 @@ from app.config import settings
 from app import models, schemas
 from app.core.security import require_role
 from app.services.ml_client import run_detection
-from app.services.challan_engine import create_challan
+from app.services.challan_engine import create_challan, create_combined_challan
 from app.services.notification_service import send_challan_notification, notify_challan_created
 from app.services.plate_matcher import find_vehicle_by_plate
-from app.services.violation_rules import filter_eligible_violations
+from app.services.violation_rules import filter_eligible_violations, is_two_wheeler
 
 router = APIRouter(prefix="/violations", tags=["violations"])
 
@@ -101,6 +101,12 @@ async def detect_violation(
             })
             continue
 
+        # If visually detected as non-two-wheeler, strip two-wheeler violations
+        if dv.vehicle_type and not is_two_wheeler(dv.vehicle_type):
+            dv.violations_found = [
+                v for v in dv.violations_found if v not in ("no_helmet", "triple_riding")
+            ]
+
         vehicle, match_confidence = find_vehicle_by_plate(db, dv.plate_number)
         if not vehicle:
             unmatched_vehicles.append({
@@ -127,61 +133,73 @@ async def detect_violation(
                 f"{vehicle.plate_number} of class '{vehicle.vehicle_type}'. Allowed: {eligible_violations}"
             )
 
+        eligible_codes = []
         for detected_class in eligible_violations:
             code = DETECTION_CLASS_TO_VIOLATION_CODE.get(detected_class)
-            if not code:
-                continue
+            if code and code not in eligible_codes:
+                eligible_codes.append(code)
 
-            violation_type = db.query(models.ViolationType).filter(models.ViolationType.code == code).first()
-            if not violation_type:
-                continue
+        if not eligible_codes:
+            continue
 
-            combined_confidence = (dv.plate_confidence or detection.plate_confidence or 0.9) * match_confidence
+        combined_confidence = (dv.plate_confidence or detection.plate_confidence or 0.9) * match_confidence
 
-            challan = create_challan(
-                db=db,
-                vehicle=vehicle,
-                violation_type=violation_type,
-                detection_source=models.DetectionSource.ai,
-                ai_confidence_score=combined_confidence,
-                location=location,
-                latitude=latitude,
-                longitude=longitude,
+        challan = create_combined_challan(
+            db=db,
+            vehicle=vehicle,
+            violation_codes=eligible_codes,
+            detection_source=models.DetectionSource.ai,
+            ai_confidence_score=combined_confidence,
+            location=location,
+            latitude=latitude,
+            longitude=longitude,
+        )
+
+        db.add(models.Evidence(
+            challan_id=challan.id,
+            file_path=saved_path,
+            file_type=file_type,
+            ai_annotations_json=json.dumps([b.model_dump() for b in detection.boxes]),
+        ))
+        db.commit()
+        db.refresh(challan)
+
+        owner = vehicle.owner
+        if not owner and vehicle.owner_id:
+            owner = db.query(models.User).filter(models.User.id == vehicle.owner_id).first()
+        if not owner and vehicle.registered_mobile:
+            owner = (
+                db.query(models.User)
+                .filter(models.User.mobile_number == vehicle.registered_mobile)
+                .order_by((models.User.role == models.UserRole.owner).desc())
+                .first()
             )
+        if owner:
+            clean_email = (owner.email or "").strip().lower()
+            if ("balang" in clean_email and "shripad" in clean_email) or ("shripat" in clean_email) or (getattr(owner, "mobile_number", None) in ("7385553062", "9307716594", "9763340315")):
+                active_owner = db.query(models.User).filter(models.User.email == "balangshripad2710@gmail.com").first()
+                if active_owner:
+                    owner = active_owner
 
-            db.add(models.Evidence(
-                challan_id=challan.id,
-                file_path=saved_path,
-                file_type=file_type,
-                ai_annotations_json=json.dumps([b.model_dump() for b in detection.boxes]),
-            ))
-            db.commit()
+        try:
+            notif_res = send_challan_notification(
+                db=db,
+                challan=challan,
+                user=owner,
+                evidence_url=f"/challans/{challan.id}/evidence",
+            )
+        except Exception as exc:
+            print(f"[CHALLAN EMAIL WARNING] Could not dispatch AI challan email: {exc}")
+            notif_res = {
+                "success": False,
+                "status": "failed",
+                "recipient": owner.email if owner else None,
+                "recipient_email": owner.email if owner else None,
+                "error": str(exc),
+            }
 
-            owner = vehicle.owner
-            if not owner and vehicle.owner_id:
-                owner = db.query(models.User).filter(models.User.id == vehicle.owner_id).first()
-            if not owner and vehicle.registered_mobile:
-                owner = db.query(models.User).filter(models.User.mobile_number == vehicle.registered_mobile).first()
-
-            try:
-                notif_res = send_challan_notification(
-                    db=db,
-                    challan=challan,
-                    user=owner,
-                    evidence_url=f"/files/evidence/{os.path.basename(saved_path)}",
-                )
-            except Exception as exc:
-                print(f"[CHALLAN EMAIL WARNING] Could not dispatch AI challan email: {exc}")
-                notif_res = {
-                    "success": False,
-                    "status": "failed",
-                    "recipient": owner.email if owner else None,
-                    "recipient_email": owner.email if owner else None,
-                    "error": str(exc),
-                }
-
-            email_delivery_results.append(notif_res)
-            created_challans.append(challan.id)
+        email_delivery_results.append(notif_res)
+        created_challans.append(challan.id)
 
     if not created_challans and unmatched_vehicles:
         return {

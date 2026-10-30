@@ -331,7 +331,7 @@ class TestViolationEndpointsIntegration(unittest.TestCase):
         )
         self.assertEqual(res.status_code, 200)
         data = res.json()
-        self.assertEqual(data["fine_amount"], 1000.0)
+        self.assertEqual(data["fine_amount"], 1500.0)
 
     def test_manual_challan_motorcycle_helmet_allowed(self):
         """Officer CAN manually create a NO_HELMET challan for a Motorcycle."""
@@ -595,7 +595,11 @@ class TestViolationEndpointsIntegration(unittest.TestCase):
         )
         self.assertEqual(res.status_code, 200)
         data = res.json()
-        self.assertEqual(len(data["challan_ids"]), 2)
+        self.assertEqual(len(data["challan_ids"]), 1)
+        db = self.TestingSessionLocal()
+        created_ch = db.query(models.Challan).filter(models.Challan.id == data["challan_ids"][0]).first()
+        self.assertEqual(created_ch.fine_amount, 1500.0)
+        db.close()
 
     @patch("app.routers.violations.run_detection")
     def test_violations_detect_video_car_helmet_blocked_wrong_side_allowed(self, mock_detect):
@@ -661,7 +665,11 @@ class TestViolationEndpointsIntegration(unittest.TestCase):
         )
         self.assertEqual(res.status_code, 200)
         data = res.json()
-        self.assertEqual(len(data["challan_ids"]), 2)
+        self.assertEqual(len(data["challan_ids"]), 1)
+        db = self.TestingSessionLocal()
+        created_ch = db.query(models.Challan).filter(models.Challan.id == data["challan_ids"][0]).first()
+        self.assertEqual(created_ch.fine_amount, 2000.0)
+        db.close()
 
     @patch("app.routers.violations.run_detection")
     def test_violations_detect_unregistered_plate_creates_zero_challans(self, mock_detect):

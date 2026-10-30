@@ -2,6 +2,7 @@ import React from 'react';
 import { X, CreditCard, FileCheck2, ImageOff } from 'lucide-react';
 import { Challan } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { buildApiUrl, buildEvidenceUrl } from '../../services/api';
 
 interface ChallanDetailsModalProps {
   challan: Challan | null;
@@ -95,6 +96,33 @@ export const ChallanDetailsModal: React.FC<ChallanDetailsModalProps> = ({
               {isPaid ? t('status.paid') : t('status.pending')}
             </span>
           </div>
+
+          {/* Multiple Violations Breakdown */}
+          {challan.violationsBreakdown?.violations && challan.violationsBreakdown.violations.length > 1 && (
+            <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/30 border-t border-[#E2E8F0] dark:border-[#1E293B] space-y-2 text-xs">
+              <span className="font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 block text-[11px]">
+                Combined Violations Itemized Breakdown
+              </span>
+              <div className="space-y-1.5 pt-0.5">
+                {challan.violationsBreakdown.violations.map((v: any, idx: number) => (
+                  <div key={idx} className="flex justify-between items-center text-[#64748B] dark:text-[#94A3B8]">
+                    <span>• {v.name}</span>
+                    <span className="font-mono font-medium text-[#172033] dark:text-[#F1F5F9]">₹{v.fine}</span>
+                  </div>
+                ))}
+                {Number(challan.violationsBreakdown.special_discount) > 0 && (
+                  <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-semibold pt-1 border-t border-amber-200/80 dark:border-amber-900/60">
+                    <span>Special Combined Package Concession</span>
+                    <span className="font-mono">-₹{challan.violationsBreakdown.special_discount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center font-bold text-[#172033] dark:text-[#F1F5F9] pt-1 border-t border-amber-200/80 dark:border-amber-900/60">
+                  <span>Net Statutory Fine Payable</span>
+                  <span className="font-mono text-sm text-[#174EA6] dark:text-[#3B82F6]">₹{challan.fineAmount}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Violation Evidence */}
@@ -110,10 +138,10 @@ export const ChallanDetailsModal: React.FC<ChallanDetailsModalProps> = ({
             )}
           </div>
 
-          {challan.hasEvidence && challan.evidenceUrl ? (
+          {(challan.hasEvidence ?? true) && challan.evidenceUrl ? (
             <div className="rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-[#1E293B] bg-[#F7F9FC] dark:bg-[#0D1524] relative">
               <img
-                src={challan.evidenceUrl}
+                src={buildEvidenceUrl(challan.evidenceUrl)}
                 alt={`Violation Evidence for ${challan.id}`}
                 className="w-full max-h-56 object-contain mx-auto"
                 onError={(e) => {

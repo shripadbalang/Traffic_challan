@@ -115,6 +115,7 @@ class Challan(Base):
     location = Column(String, nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
+    notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

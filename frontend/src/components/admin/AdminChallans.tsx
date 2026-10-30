@@ -18,7 +18,7 @@ import {
   Cpu,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
-import { api, cleanMobile10 } from '../../services/api';
+import { api, cleanMobile10, buildApiUrl } from '../../services/api';
 
 export const AdminChallans: React.FC = () => {
   const [challans, setChallans] = useState<any[]>([]);
@@ -460,7 +460,7 @@ export const AdminChallans: React.FC = () => {
                           <div className="aspect-video bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center border border-slate-300 dark:border-slate-700 relative">
                             {ev.file_path ? (
                               <img
-                                src={ev.file_path.startsWith('http') || ev.file_path.startsWith('/') ? ev.file_path : `/files/evidence/${ev.file_path}`}
+                                src={buildApiUrl(ev.file_path.startsWith('http') || ev.file_path.startsWith('/') ? ev.file_path : `/files/evidence/${ev.file_path}`)}
                                 alt="Violation Evidence"
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
