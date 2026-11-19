@@ -523,11 +523,7 @@ def owner_login_initiate(request: Request, payload: schemas.OwnerLoginInitiateRe
     is_email = "@" in raw_id
     if is_email:
         clean_id = raw_id.lower()
-        user = db.query(models.User).filter(
-            (models.User.email == clean_id) |
-            (models.User.email == clean_id.replace("shripad", "shripat")) |
-            (models.User.email == clean_id.replace("shripat", "shripad"))
-        ).first()
+        user = db.query(models.User).filter(models.User.email == clean_id).first()
     else:
         clean_mob = re.sub(r"\D", "", raw_id)
         if clean_mob.startswith("91") and len(clean_mob) > 10:
@@ -602,11 +598,7 @@ def owner_login_verify(request: Request, payload: schemas.OwnerLoginVerifyReques
     is_email = "@" in raw_id
     if is_email:
         clean_id = raw_id.lower()
-        user = db.query(models.User).filter(
-            (models.User.email == clean_id) |
-            (models.User.email == clean_id.replace("shripad", "shripat")) |
-            (models.User.email == clean_id.replace("shripat", "shripad"))
-        ).first()
+        user = db.query(models.User).filter(models.User.email == clean_id).first()
     else:
         clean_mob = re.sub(r"\D", "", raw_id)
         if clean_mob.startswith("91") and len(clean_mob) > 10:
@@ -682,11 +674,7 @@ def owner_resend_otp(request: Request, payload: schemas.OwnerResendOtpRequest, d
 
     if is_email:
         clean_email = raw_id.lower()
-        user = db.query(models.User).filter(
-            (models.User.email == clean_email) |
-            (models.User.email == clean_email.replace("shripad", "shripat")) |
-            (models.User.email == clean_email.replace("shripat", "shripad"))
-        ).first()
+        user = db.query(models.User).filter(models.User.email == clean_email).first()
         if user and user.mobile_number:
             clean_mob = user.mobile_number
     else:

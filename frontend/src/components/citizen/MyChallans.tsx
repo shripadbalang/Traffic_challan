@@ -52,10 +52,12 @@ export const MyChallans: React.FC = () => {
         api.getMyChallans(),
         api.getMyVehicles(),
       ]);
-      setChallans(cList);
-      setVehicles(vList);
+      setChallans(cList || []);
+      setVehicles(vList || []);
     } catch (err) {
       console.error('Failed to load challans:', err);
+      setChallans([]);
+      setVehicles([]);
     } finally {
       setLoading(false);
     }

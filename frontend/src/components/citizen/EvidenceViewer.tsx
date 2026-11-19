@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Camera, MapPin, ShieldAlert } from 'lucide-react';
 import { Challan } from '../../types';
 import { Modal } from '../common/Modal';
 import { useLanguage } from '../../context/LanguageContext';
-import { buildApiUrl, buildEvidenceUrl } from '../../services/api';
+import { SecureEvidenceImage } from '../common/SecureEvidenceImage';
 
 interface EvidenceViewerProps {
   isOpen: boolean;
@@ -13,17 +13,10 @@ interface EvidenceViewerProps {
 
 export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ isOpen, onClose, challan }) => {
   const { t, translateViolation, formatDate, formatCurrency } = useLanguage();
-  const [imageError, setImageError] = useState(false);
-
-  useEffect(() => {
-    setImageError(false);
-  }, [challan?.id, isOpen]);
 
   if (!challan) return null;
 
   const rawUrl = challan.evidenceUrl || (challan.id ? `/challans/${challan.id}/evidence` : '');
-  const mediaUrl = rawUrl ? buildEvidenceUrl(rawUrl) : '';
-  const hasPhoto = Boolean(mediaUrl && !imageError);
   const plate = challan.vehiclePlate || '';
 
   return (
@@ -42,39 +35,11 @@ export const EvidenceViewer: React.FC<EvidenceViewerProps> = ({ isOpen, onClose,
     >
       <div className="space-y-5 text-[#172033] dark:text-[#F1F5F9]">
         {/* Evidence Visual Display */}
-        <div className="rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-[#1E293B] bg-[#F7F9FC] dark:bg-[#0D1524] flex items-center justify-center min-h-[260px] select-none">
-          {hasPhoto ? (
-            challan.evidenceType === 'video' ||
-            mediaUrl.match(/\.(mp4|webm|avi|mov)$/i) ? (
-              <video
-                src={mediaUrl}
-                controls
-                autoPlay
-                loop
-                muted
-                className="w-full max-h-[420px] object-contain bg-black"
-              />
-            ) : (
-              <img
-                src={mediaUrl}
-                alt={`Violation evidence for challan ${challan.id}`}
-                className="w-full max-h-[420px] object-contain rounded-lg shadow-sm"
-                onError={() => {
-                  setImageError(true);
-                }}
-              />
-            )
-          ) : (
-            <div className="text-center p-8 max-w-md">
-              <div className="w-14 h-14 rounded-full bg-white dark:bg-[#111C2E] border border-[#E2E8F0] dark:border-[#1E293B] flex items-center justify-center mx-auto mb-3 text-[#64748B] dark:text-[#94A3B8]">
-                <Camera className="w-7 h-7" />
-              </div>
-              <p className="text-base font-semibold text-[#172033] dark:text-[#F1F5F9]">
-                {t('challanDetails.noEvidenceImg')}
-              </p>
-            </div>
-          )}
-        </div>
+        <SecureEvidenceImage
+          src={rawUrl}
+          alt={`Violation evidence for challan ${challan.id}`}
+          fallbackText={t('challanDetails.noEvidenceImg')}
+        />
 
         {/* Multiple Violations Combined Breakdown */}
         {challan.violationsBreakdown?.violations && challan.violationsBreakdown.violations.length > 1 && (

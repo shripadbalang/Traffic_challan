@@ -892,25 +892,7 @@ def send_challan_notification(
 
 
 
-    # Normalize known owner alias/typo to active verified owner account
-    if user:
-        clean_email = (user.email or "").strip().lower()
-        is_owner_alias = (
-            ("balang" in clean_email and "shripad" in clean_email)
-            or ("shripat" in clean_email)
-            or (getattr(user, "mobile_number", None) in ("7385553062", "9307716594", "9763340315"))
-        )
-        if is_owner_alias:
-            active_owner = (
-                db.query(models.User)
-                .filter(models.User.email == "balangshripad2710@gmail.com")
-                .first()
-            )
-            if active_owner:
-                user = active_owner
-
     # 1. Missing Owner or Missing Email
-
     if not user or not user.email or not user.email.strip():
 
         if user:

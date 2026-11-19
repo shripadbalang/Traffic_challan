@@ -72,12 +72,6 @@ def create_manual_challan(
             .order_by((models.User.role == models.UserRole.owner).desc())
             .first()
         )
-    if owner:
-        clean_email = (owner.email or "").strip().lower()
-        if ("balang" in clean_email and "shripad" in clean_email) or ("shripat" in clean_email) or (getattr(owner, "mobile_number", None) in ("7385553062", "9307716594", "9763340315")):
-            active_owner = db.query(models.User).filter(models.User.email == "balangshripad2710@gmail.com").first()
-            if active_owner:
-                owner = active_owner
 
     notif_res = None
     try:
@@ -102,16 +96,7 @@ def my_challans(
     user: models.User = Depends(get_current_user),
 ):
     """Citizen's own challans, strictly scoped to their registered vehicles."""
-    linked_user_ids = {user.id}
-    clean_email = (user.email or "").strip().lower()
-    if ("balang" in clean_email and "shripad" in clean_email) or ("shripat" in clean_email) or (getattr(user, "mobile_number", None) in ("7385553062", "9307716594", "9763340315")):
-        alias_users = db.query(models.User).filter(
-            (models.User.email.ilike("%balang%")) | (models.User.email.ilike("%shripat%"))
-        ).all()
-        for au in alias_users:
-            linked_user_ids.add(au.id)
-
-    vehicles = db.query(models.Vehicle).filter(models.Vehicle.owner_id.in_(linked_user_ids)).all()
+    vehicles = db.query(models.Vehicle).filter(models.Vehicle.owner_id == user.id).all()
     vehicle_ids = [v.id for v in vehicles]
     if not vehicle_ids:
         return []
@@ -200,17 +185,8 @@ def get_challan_detail(
         raise HTTPException(status_code=404, detail="Challan not found")
 
     # Strict ownership check for citizens/owners; officers/admins can view any
-    linked_user_ids = {user.id}
-    clean_email = (user.email or "").strip().lower()
-    if ("balang" in clean_email and "shripad" in clean_email) or ("shripat" in clean_email) or (getattr(user, "mobile_number", None) in ("7385553062", "9307716594", "9763340315")):
-        alias_users = db.query(models.User).filter(
-            (models.User.email.ilike("%balang%")) | (models.User.email.ilike("%shripat%"))
-        ).all()
-        for au in alias_users:
-            linked_user_ids.add(au.id)
-
     user_role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
-    if user_role_str in ("owner", "citizen") and (not challan.vehicle or challan.vehicle.owner_id not in linked_user_ids):
+    if user_role_str in ("owner", "citizen") and (not challan.vehicle or challan.vehicle.owner_id != user.id):
         raise HTTPException(status_code=403, detail="Not authorized to view this challan")
 
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -237,13 +213,14 @@ def get_challan_detail(
                 break
         if not evidence_item and len(challan.evidence) > 0:
             evidence_item = challan.evidence[0]
-            safe_name = os.path.basename(evidence_item.file_path) if evidence_item.file_path else f"challan_{challan.id}.jpg"
+            raw_p = evidence_item.file_path or ""
+            safe_name = os.path.basename(raw_p.replace("\\", "/")) if raw_p else f"challan_{challan.id}.jpg"
             has_real_file = True
     else:
         safe_name = f"challan_{challan.id}.jpg"
         has_real_file = True
 
-    evidence_url = f"/files/evidence/{safe_name}"
+    evidence_url = f"/challans/{challan.id}/evidence"
     evidence_type = evidence_item.file_type if evidence_item else "image"
 
     payment_date = None
@@ -253,16 +230,23 @@ def get_challan_detail(
     evidence_list = []
     if challan.evidence:
         for e in challan.evidence:
-            sname = os.path.basename(e.file_path) if e.file_path else f"challan_{challan.id}.jpg"
+            raw_p = e.file_path or ""
+            sname = os.path.basename(raw_p.replace("\\", "/")) if raw_p else f"challan_{challan.id}.jpg"
             evidence_list.append({
-                "file_path": f"/files/evidence/{sname}",
+                "id": str(e.id),
+                "file_path": f"/challans/{challan.id}/evidence",
+                "evidence_url": f"/challans/{challan.id}/evidence",
+                "file_name": sname,
                 "file_type": e.file_type,
                 "annotations": e.ai_annotations_json,
                 "exists": True,
             })
     else:
         evidence_list.append({
-            "file_path": f"/files/evidence/{safe_name}",
+            "id": "default",
+            "file_path": f"/challans/{challan.id}/evidence",
+            "evidence_url": f"/challans/{challan.id}/evidence",
+            "file_name": safe_name,
             "file_type": "image",
             "annotations": None,
             "exists": True,
@@ -338,9 +322,10 @@ def resolve_dispute(
     return {"message": f"Dispute resolved — challan {'reinstated' if approve else 'cancelled'}."}
 
 
-@router.get("/{challan_id}/evidence")
+@router.api_route("/{challan_id}/evidence", methods=["GET", "HEAD"])
 def get_challan_evidence(
     challan_id: str,
+    evidence_id: Optional[str] = Query(None),
     token: Optional[str] = Query(None),
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db),
@@ -389,18 +374,16 @@ def get_challan_evidence(
     # IDOR Protection: Owner can view evidence ONLY for their own vehicles
     user_role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
     if user_role_str not in ("admin", "officer"):
-        from app.routers.payments import get_linked_user_ids
-        linked_ids = get_linked_user_ids(user, db)
         vehicle = challan.vehicle
         is_authorized_owner = False
-        if vehicle and vehicle.owner_id in linked_ids:
+        if vehicle and vehicle.owner_id == user.id:
             is_authorized_owner = True
         elif vehicle and vehicle.registered_mobile and clean_mobile_str(vehicle.registered_mobile) == clean_mobile_str(user.mobile_number):
             is_authorized_owner = True
         elif vehicle and vehicle.owner and vehicle.owner.email:
             clean_user_email = (user.email or "").strip().lower()
             clean_v_email = vehicle.owner.email.strip().lower()
-            if clean_user_email == clean_v_email:
+            if clean_user_email and clean_user_email == clean_v_email:
                 is_authorized_owner = True
 
         if not is_authorized_owner:
@@ -414,19 +397,20 @@ def get_challan_evidence(
     file_path_on_disk = None
 
     if challan.evidence:
-        for ev in challan.evidence:
+        target_evs = [e for e in challan.evidence if str(e.id) == evidence_id] if evidence_id else challan.evidence
+        for ev in target_evs:
             if ev.file_path and os.path.isfile(ev.file_path):
                 file_path_on_disk = ev.file_path
                 break
             if ev.file_path:
-                basename = os.path.basename(ev.file_path)
+                norm_path = ev.file_path.replace("\\", "/")
+                basename = os.path.basename(norm_path)
                 candidates = [
                     os.path.join(settings.EVIDENCE_STORAGE_PATH, basename),
-                    os.path.join("backend", settings.EVIDENCE_STORAGE_PATH, basename),
                     os.path.join(base_dir, "backend", "storage", "evidence", basename),
                     os.path.join(base_dir, "storage", "evidence", basename),
-                    os.path.join("storage", "evidence", basename),
                     os.path.join("backend", "storage", "evidence", basename),
+                    os.path.join("storage", "evidence", basename),
                 ]
                 for cand in candidates:
                     if os.path.isfile(cand):
@@ -441,7 +425,7 @@ def get_challan_evidence(
         return FileResponse(
             file_path_on_disk,
             media_type=media_type,
-            headers={"Cross-Origin-Resource-Policy": "cross-origin"},
+            headers={"Cross-Origin-Resource-Policy": "cross-origin", "Cache-Control": "private, max-age=3600"},
         )
 
     # Dynamic fallback image when physical image is absent
@@ -451,5 +435,5 @@ def get_challan_evidence(
     return Response(
         content=img_bytes,
         media_type="image/jpeg",
-        headers={"Cross-Origin-Resource-Policy": "cross-origin"},
+        headers={"Cross-Origin-Resource-Policy": "cross-origin", "Cache-Control": "private, max-age=3600"},
     )

@@ -8,14 +8,11 @@ const ANALYTICS_KEY = 'echallan_data_analytics';
 
 export function getStoredChallans(): Challan[] {
   const data = localStorage.getItem(CHALLANS_KEY);
-  if (!data) {
-    localStorage.setItem(CHALLANS_KEY, JSON.stringify(INITIAL_CHALLANS));
-    return INITIAL_CHALLANS;
-  }
+  if (!data) return [];
   try {
     return JSON.parse(data);
   } catch {
-    return INITIAL_CHALLANS;
+    return [];
   }
 }
 
@@ -25,14 +22,11 @@ export function saveStoredChallans(challans: Challan[]) {
 
 export function getStoredVehicles(): Vehicle[] {
   const data = localStorage.getItem(VEHICLES_KEY);
-  if (!data) {
-    localStorage.setItem(VEHICLES_KEY, JSON.stringify(INITIAL_VEHICLES));
-    return INITIAL_VEHICLES;
-  }
+  if (!data) return [];
   try {
     return JSON.parse(data);
   } catch {
-    return INITIAL_VEHICLES;
+    return [];
   }
 }
 
@@ -75,15 +69,51 @@ export function buildApiUrl(endpoint: string): string {
 
 export function buildEvidenceUrl(rawUrl: string): string {
   if (!rawUrl) return '';
-  const url = buildApiUrl(rawUrl);
+  // Strip any previous token parameter to prevent stale or expired tokens
+  let cleanUrl = rawUrl;
+  try {
+    const dummyBase = 'http://localhost';
+    const parsed = new URL(cleanUrl, dummyBase);
+    parsed.searchParams.delete('token');
+    cleanUrl = cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')
+      ? parsed.origin + parsed.pathname + (parsed.search ? parsed.search : '')
+      : parsed.pathname + (parsed.search ? parsed.search : '');
+  } catch {}
+
+  const url = buildApiUrl(cleanUrl);
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('auth_token');
-    if (token && (url.includes('/evidence') || url.includes('/challans/')) && !url.includes('token=')) {
+    if (token && (url.includes('/evidence') || url.includes('/challans/'))) {
       const sep = url.includes('?') ? '&' : '?';
       return `${url}${sep}token=${encodeURIComponent(token)}`;
     }
   }
   return url;
+}
+
+export async function fetchEvidenceBlobUrl(evidenceUrlOrChallanId: string): Promise<string> {
+  if (!evidenceUrlOrChallanId) {
+    throw new Error('Evidence URL is required');
+  }
+  let path = evidenceUrlOrChallanId;
+  if (!path.startsWith('/') && !path.startsWith('http')) {
+    path = `/challans/${path}/evidence`;
+  }
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await apiFetch(path, { headers });
+  if (!res.ok) {
+    throw new Error(`Failed to load evidence: HTTP ${res.status}`);
+  }
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('text/html')) {
+    throw new Error('Received HTML response instead of binary evidence media.');
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
 }
 
 export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
@@ -1246,7 +1276,7 @@ export const api = {
             location: c.location,
             paymentDate: c.payment_date,
             hasEvidence: Boolean(c.has_evidence ?? true),
-            evidenceUrl: c.evidence_url ? buildEvidenceUrl(c.evidence_url) : (c.id ? buildEvidenceUrl(`/challans/${c.id}/evidence`) : null),
+            evidenceUrl: c.evidence_url || (c.id ? `/challans/${c.id}/evidence` : null),
             evidenceType: c.evidence_type || 'image',
             evidenceMissingReason: c.evidence_missing_reason || null,
             notes: c.notes,
@@ -1290,7 +1320,7 @@ export const api = {
       location: data.location,
       paymentDate: data.payment_date,
       hasEvidence: Boolean(data.has_evidence ?? true),
-      evidenceUrl: data.evidence_url ? buildEvidenceUrl(data.evidence_url) : (data.id ? buildEvidenceUrl(`/challans/${data.id}/evidence`) : null),
+      evidenceUrl: data.evidence_url || (data.id ? `/challans/${data.id}/evidence` : null),
       evidenceType: data.evidence_type || 'image',
       evidenceMissingReason: data.evidence_missing_reason || null,
       evidence: data.evidence || [],

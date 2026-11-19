@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, ImageOff, ShieldAlert } from 'lucide-react';
+import React from 'react';
+import { X, ShieldAlert } from 'lucide-react';
 import { Challan } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
-import { buildApiUrl } from '../../services/api';
+import { SecureEvidenceImage } from '../common/SecureEvidenceImage';
 
 interface EvidenceModalProps {
   challan: Challan | null;
@@ -10,19 +10,12 @@ interface EvidenceModalProps {
 }
 
 export const EvidenceModal: React.FC<EvidenceModalProps> = ({ challan, onClose }) => {
-  const [imageError, setImageError] = useState(false);
   const { t, translateViolation, formatDate, formatCurrency } = useLanguage();
-
-  useEffect(() => {
-    setImageError(false);
-  }, [challan?.id]);
 
   if (!challan) return null;
 
-  const rawUrl = challan.evidenceUrl || (challan.id ? `/files/evidence/challan_${challan.id}.jpg` : '');
-  const mediaUrl = rawUrl ? buildApiUrl(rawUrl) : '';
-  const showFallback = !mediaUrl || imageError;
   const plate = challan.vehiclePlate || '';
+  const evidenceEndpoint = challan.evidenceUrl || (challan.id ? `/challans/${challan.id}/evidence` : '');
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 dark:bg-black/80 backdrop-blur-[2px] flex items-center justify-center p-4 overflow-y-auto">
@@ -81,23 +74,11 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ challan, onClose }
 
         {/* Evidence Visual Area */}
         <div className="mb-6">
-          {!showFallback ? (
-            <div className="rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-[#1E293B] bg-[#F7F9FC] dark:bg-[#0D1524] flex items-center justify-center min-h-[220px]">
-              <img
-                src={mediaUrl}
-                alt={`Violation Evidence for ${challan.id}`}
-                className="w-full max-h-72 object-contain mx-auto rounded-lg shadow-sm"
-                onError={() => setImageError(true)}
-              />
-            </div>
-          ) : (
-            <div className="p-8 rounded-xl bg-[#F7F9FC] dark:bg-[#162238]/60 border border-[#E2E8F0] dark:border-[#1E293B] text-center text-[#64748B] dark:text-[#94A3B8] text-xs flex flex-col items-center justify-center gap-2 min-h-[200px]">
-              <ImageOff className="w-8 h-8 text-[#94A3B8]" />
-              <p className="font-bold text-[#172033] dark:text-[#F1F5F9] text-sm">
-                {t('challanDetails.noEvidenceImg')}
-              </p>
-            </div>
-          )}
+          <SecureEvidenceImage
+            src={evidenceEndpoint}
+            alt={`Violation Evidence for #${challan.id}`}
+            fallbackText={t('challanDetails.noEvidenceImg')}
+          />
         </div>
 
         {/* Footer */}

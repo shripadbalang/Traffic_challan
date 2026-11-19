@@ -117,32 +117,53 @@ export const OwnerCreateAccount: React.FC = () => {
 
         // 2. Fallback: Supabase Auth
         if (isSupabaseConfigured()) {
-          const { error } = await supabase.auth.signInWithOtp({
-            email: cleanEmail,
-            options: {
-              shouldCreateUser: true,
-              data: {
-                full_name: cleanName,
-                mobile_number: cleanMob,
-                role: 'owner',
+          try {
+            const { error } = await supabase.auth.signInWithOtp({
+              email: cleanEmail,
+              options: {
+                shouldCreateUser: true,
+                data: {
+                  full_name: cleanName,
+                  mobile_number: cleanMob,
+                  role: 'owner',
+                },
               },
-            },
-          });
+            });
 
-          if (error) {
-            if (error.status === 429 || error.message.toLowerCase().includes('rate')) {
+            if (error) {
+              if (error.status === 429 || error.message.toLowerCase().includes('rate')) {
+                throw new Error(
+                  'For security, you can only request a new code every 60 seconds. Please wait before retrying.'
+                );
+              }
+              if (
+                backendErr?.message?.includes('Failed to fetch') ||
+                backendErr?.message?.includes('NetworkError') ||
+                error.status === 500
+              ) {
+                throw new Error(
+                  'Backend server is unreachable. Please verify that the backend API tunnel is active.'
+                );
+              }
+              throw new Error(error.message || 'Failed to send verification code.');
+            }
+
+            setStep('otp');
+            setTimeLeft(119);
+            setTimerActive(true);
+            setTimeout(() => otpInputs.current[0]?.focus(), 150);
+            return;
+          } catch (supaErr: any) {
+            if (
+              backendErr?.message?.includes('Failed to fetch') ||
+              backendErr?.message?.includes('NetworkError')
+            ) {
               throw new Error(
-                'For security, you can only request a new code every 60 seconds. Please wait before retrying.'
+                'Backend server is unreachable. Please verify that the backend API tunnel is active.'
               );
             }
-            throw new Error(error.message || 'Failed to send verification code.');
+            throw supaErr;
           }
-
-          setStep('otp');
-          setTimeLeft(119);
-          setTimerActive(true);
-          setTimeout(() => otpInputs.current[0]?.focus(), 150);
-          return;
         }
 
         // 3. Fallback for offline dev

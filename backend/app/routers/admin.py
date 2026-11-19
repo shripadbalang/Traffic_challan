@@ -1,3 +1,4 @@
+import os
 import io
 import csv
 import re
@@ -458,7 +459,8 @@ def list_admin_challans(
             "officer_name": c.officer.user.full_name if (c.officer and c.officer.user) else None,
             "officer_badge": c.officer.badge_number if c.officer else None,
             "has_evidence": bool(ev),
-            "evidence_path": ev.file_path if ev else None,
+            "evidence_path": f"/challans/{c.id}/evidence" if ev else None,
+            "evidence_url": f"/challans/{c.id}/evidence" if ev else None,
             "evidence_type": ev.file_type if ev else None,
             "payment_status": pay.status if pay else "unpaid",
             "payment_date": pay.paid_at.isoformat() if (pay and pay.paid_at) else None,
@@ -496,7 +498,9 @@ def get_admin_challan_detail(
     evidence_list = [
         {
             "id": str(e.id),
-            "file_path": e.file_path,
+            "file_path": f"/challans/{c.id}/evidence" + (f"?evidence_id={e.id}" if len(c.evidence) > 1 else ""),
+            "evidence_url": f"/challans/{c.id}/evidence" + (f"?evidence_id={e.id}" if len(c.evidence) > 1 else ""),
+            "file_name": os.path.basename(e.file_path.replace("\\", "/")) if e.file_path else None,
             "file_type": e.file_type,
             "ai_annotations_json": e.ai_annotations_json,
         }
@@ -537,6 +541,8 @@ def get_admin_challan_detail(
             "full_name": officer.user.full_name if (officer and officer.user) else None,
             "station": officer.station if officer else None,
         } if officer else None,
+        "has_evidence": bool(c.evidence),
+        "evidence_url": f"/challans/{c.id}/evidence" if c.evidence else None,
         "evidence": evidence_list,
         "payment": {
             "id": str(pay.id) if pay else None,

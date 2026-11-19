@@ -49,83 +49,46 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # Configure CORS
-
 allowed_origins = [
-
     settings.FRONTEND_URL,
-
     "https://traffic.balangshripad.dev",
-
     "http://traffic.balangshripad.dev",
-
     "https://traffic-challan.pages.dev",
-
     "http://localhost:5173",
-
     "http://localhost:3000",
-
 ]
-
 # Remove any empty/None entries and duplicate entries while preserving order
-
 allowed_origins = list(dict.fromkeys([o for o in allowed_origins if o]))
 
-
-
 app.add_middleware(
-
     CORSMiddleware,
-
     allow_origins=allowed_origins,
-
-    allow_origin_regex=r"https?://.*(balangshripad\.dev|pages\.dev)",
-
+    allow_origin_regex=r"^https?://([a-zA-Z0-9-]+\.)*(balangshripad\.dev|pages\.dev|ngrok-free\.dev|ngrok\.io|localhost)(:\d+)?$",
     allow_credentials=True,
-
     allow_methods=["*"],
-
     allow_headers=["*"],
-
+    expose_headers=["*", "Content-Disposition", "ngrok-skip-browser-warning"],
 )
 
 
-
-
-
 @app.middleware("http")
-
 async def add_security_headers(request: Request, call_next):
-
     """Defense-in-depth HTTP security headers."""
+    if request.method == "OPTIONS":
+        return await call_next(request)
 
     response = await call_next(request)
-
     response.headers["X-Content-Type-Options"] = "nosniff"
-
     response.headers["X-Frame-Options"] = "DENY"
-
     if request.url.path in ("/docs", "/redoc", "/openapi.json"):
-
         response.headers["Content-Security-Policy"] = (
-
             "default-src 'self'; "
-
             "img-src 'self' data: https://fastapi.tiangolo.com; "
-
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-
             "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;"
-
         )
-
-    else:
-
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
-
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-
     return response
 
 
@@ -193,9 +156,9 @@ def _generate_fallback_evidence_image(filename: str, out_path: str = None) -> by
         return b""
 
 
-@app.get("/files/evidence/{filename}")
+@app.api_route("/files/evidence/{filename:path}", methods=["GET", "HEAD"])
 def get_evidence_file(filename: str):
-    safe_filename = os.path.basename(filename)
+    safe_filename = os.path.basename(filename.replace("\\", "/"))
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     candidates = [
         os.path.join(settings.EVIDENCE_STORAGE_PATH, safe_filename),
@@ -208,13 +171,13 @@ def get_evidence_file(filename: str):
     for p in candidates:
         if os.path.isfile(p):
             media_type = "video/mp4" if safe_filename.endswith((".mp4", ".avi", ".mov")) else "image/jpeg"
-            return FileResponse(p, media_type=media_type, headers={"Cross-Origin-Resource-Policy": "cross-origin"})
+            return FileResponse(p, media_type=media_type, headers={"Cross-Origin-Resource-Policy": "cross-origin", "Cache-Control": "private, max-age=3600"})
 
     # If physical file does not exist on disk, dynamically generate an official enforcement evidence image
     fallback_path = os.path.join(settings.EVIDENCE_STORAGE_PATH, safe_filename)
     fb_bytes = _generate_fallback_evidence_image(safe_filename, out_path=fallback_path)
     if fb_bytes:
-        return Response(content=fb_bytes, media_type="image/jpeg", headers={"Cross-Origin-Resource-Policy": "cross-origin"})
+        return Response(content=fb_bytes, media_type="image/jpeg", headers={"Cross-Origin-Resource-Policy": "cross-origin", "Cache-Control": "private, max-age=3600"})
 
     raise HTTPException(status_code=404, detail="Evidence file not found")
 

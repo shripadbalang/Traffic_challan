@@ -101,38 +101,59 @@ export const OwnerLogin: React.FC = () => {
 
         // If backend returned other error or is unreachable, attempt Supabase Auth fallback
         if (isSupabaseConfigured() && cleanId.includes('@')) {
-          const { error } = await supabase.auth.signInWithOtp({
-            email: cleanId,
-            options: {
-              shouldCreateUser: false,
-            },
-          });
+          try {
+            const { error } = await supabase.auth.signInWithOtp({
+              email: cleanId,
+              options: {
+                shouldCreateUser: false,
+              },
+            });
 
-          if (error) {
+            if (error) {
+              if (
+                error.message.includes('Signups not allowed') ||
+                error.message.toLowerCase().includes('user not found') ||
+                error.status === 400 ||
+                error.status === 422
+              ) {
+                throw new Error(
+                  'No owner account found with this email. Please click "Create Citizen Account" below to register.'
+                );
+              }
+              if (error.status === 429 || error.message.toLowerCase().includes('rate')) {
+                throw new Error(
+                  'For security, you can only request a new code every 60 seconds. Please wait before retrying.'
+                );
+              }
+              if (
+                backendErr?.message?.includes('Failed to fetch') ||
+                backendErr?.message?.includes('NetworkError') ||
+                error.status === 500
+              ) {
+                throw new Error(
+                  'Backend server is unreachable. Please verify that the backend API tunnel is active.'
+                );
+              }
+              throw new Error(error.message || 'Failed to send verification code.');
+            }
+
+            setMaskedContact(cleanId);
+            setStep('otp');
+            setTimeLeft(119);
+            setTimerActive(true);
+            setTimeout(() => otpInputs.current[0]?.focus(), 150);
+            return;
+          } catch (supaErr: any) {
             if (
-              error.message.includes('Signups not allowed') ||
-              error.message.toLowerCase().includes('user not found') ||
-              error.status === 400 ||
-              error.status === 422
+              backendErr?.message?.includes('Failed to fetch') ||
+              backendErr?.message?.includes('NetworkError')
             ) {
               throw new Error(
-                'No owner account found with this email. Please click "Create Citizen Account" below to register.'
+                'Backend server is unreachable. Please verify that the backend API tunnel is active.'
               );
             }
-            if (error.status === 429 || error.message.toLowerCase().includes('rate')) {
-              throw new Error(
-                'For security, you can only request a new code every 60 seconds. Please wait before retrying.'
-              );
-            }
-            throw new Error(error.message || 'Failed to send verification code.');
+            throw supaErr;
           }
-
-          setMaskedContact(cleanId);
-          setStep('otp');
-          setTimeLeft(119);
-          setTimerActive(true);
-          setTimeout(() => otpInputs.current[0]?.focus(), 150);
-          return;
         }
 
         // Fallback for offline dev

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, cleanMobile10, buildApiUrl } from '../../services/api';
+import { SecureEvidenceImage } from '../common/SecureEvidenceImage';
 
 export const AdminChallans: React.FC = () => {
   const [challans, setChallans] = useState<any[]>([]);
@@ -457,25 +458,29 @@ export const AdminChallans: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
                       {challanDetail.evidence.map((ev: any) => (
                         <div key={ev.id} className="space-y-1.5">
-                          <div className="aspect-video bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center border border-slate-300 dark:border-slate-700 relative">
-                            {ev.file_path ? (
-                              <img
-                                src={buildApiUrl(ev.file_path.startsWith('http') || ev.file_path.startsWith('/') ? ev.file_path : `/files/evidence/${ev.file_path}`)}
-                                alt="Violation Evidence"
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = '/samples/helmet_violation.jpg';
-                                }}
-                              />
-                            ) : (
-                              <span className="text-xs text-slate-400">Evidence file not available</span>
-                            )}
-                          </div>
+                          <SecureEvidenceImage
+                            src={ev.evidence_url || ev.file_path || `/challans/${challanDetail.id}/evidence`}
+                            alt={`Challan Evidence for ${challanDetail.vehicle_plate}`}
+                            className="w-full h-full object-contain"
+                            containerClassName="aspect-video bg-slate-950 rounded-lg overflow-hidden flex items-center justify-center border border-slate-300 dark:border-slate-700 relative"
+                            allowZoom={true}
+                            fallbackText="Violation photographic capture unavailable"
+                          />
                           <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 block truncate">
-                            File: {ev.file_path}
+                            Record: {ev.file_name || `challan_${challanDetail.id}`}
                           </span>
                         </div>
                       ))}
+                    </div>
+                  ) : challanDetail.has_evidence || challanDetail.evidence_url ? (
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <SecureEvidenceImage
+                        src={challanDetail.evidence_url || `/challans/${challanDetail.id}/evidence`}
+                        alt={`Challan Evidence for ${challanDetail.vehicle_plate}`}
+                        className="w-full h-full object-contain"
+                        containerClassName="aspect-video bg-slate-950 rounded-lg overflow-hidden flex items-center justify-center border border-slate-300 dark:border-slate-700 relative"
+                        allowZoom={true}
+                      />
                     </div>
                   ) : (
                     <p className="text-xs text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl text-center">

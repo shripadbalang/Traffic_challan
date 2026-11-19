@@ -1,8 +1,8 @@
 import React from 'react';
-import { X, CreditCard, FileCheck2, ImageOff } from 'lucide-react';
+import { X, CreditCard, FileCheck2 } from 'lucide-react';
 import { Challan } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
-import { buildApiUrl, buildEvidenceUrl } from '../../services/api';
+import { SecureEvidenceImage } from '../common/SecureEvidenceImage';
 
 interface ChallanDetailsModalProps {
   challan: Challan | null;
@@ -139,29 +139,14 @@ export const ChallanDetailsModal: React.FC<ChallanDetailsModalProps> = ({
           </div>
 
           {(challan.hasEvidence ?? true) && challan.evidenceUrl ? (
-            <div className="rounded-xl overflow-hidden border border-[#E2E8F0] dark:border-[#1E293B] bg-[#F7F9FC] dark:bg-[#0D1524] relative">
-              <img
-                src={buildEvidenceUrl(challan.evidenceUrl)}
-                alt={`Violation Evidence for ${challan.id}`}
-                className="w-full max-h-56 object-contain mx-auto"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                  const fallback = document.getElementById(`fallback-msg-${challan.id}`);
-                  if (fallback) fallback.style.display = 'block';
-                }}
-              />
-              <div
-                id={`fallback-msg-${challan.id}`}
-                style={{ display: 'none' }}
-                className="p-8 text-center text-[#64748B] dark:text-[#94A3B8] text-xs"
-              >
-                <ImageOff className="w-8 h-8 text-[#94A3B8] mx-auto mb-2" />
-                <p>{t('challanDetails.noEvidenceImg')}</p>
-              </div>
-            </div>
+            <SecureEvidenceImage
+              src={challan.evidenceUrl}
+              alt={`Violation Evidence for #${challan.id}`}
+              className="w-full max-h-56 object-contain mx-auto rounded-lg"
+              fallbackText={t('challanDetails.noEvidenceImg')}
+            />
           ) : (
             <div className="p-6 rounded-xl bg-[#F7F9FC] dark:bg-[#162238]/60 border border-[#E2E8F0] dark:border-[#1E293B] text-center text-[#64748B] dark:text-[#94A3B8] text-xs flex flex-col items-center justify-center gap-1.5">
-              <ImageOff className="w-6 h-6 text-[#94A3B8]" />
               <p className="font-medium text-[#172033] dark:text-[#F1F5F9]">{t('challanDetails.noEvidenceImg')}</p>
             </div>
           )}

@@ -28,16 +28,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   });
 
+  const clearOwnerSessionData = () => {
+    localStorage.removeItem('echallan_current_user');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('echallan_data_vehicles');
+    localStorage.removeItem('echallan_data_challans');
+    localStorage.removeItem('echallan_data_analytics');
+  };
+
   useEffect(() => {
     if (user) {
       localStorage.setItem('echallan_current_user', JSON.stringify(user));
     } else {
-      localStorage.removeItem('echallan_current_user');
-      localStorage.removeItem('auth_token');
+      clearOwnerSessionData();
     }
   }, [user]);
 
   const loginCitizen = (userData: User, token?: string) => {
+    clearOwnerSessionData();
     if (token) {
       localStorage.setItem('auth_token', token);
     }
@@ -45,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginOwner = (userData: User, token?: string) => {
+    clearOwnerSessionData();
     if (token) {
       localStorage.setItem('auth_token', token);
     }
@@ -52,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginOfficerOrAdmin = (userData: User, token?: string) => {
+    clearOwnerSessionData();
     if (token) {
       localStorage.setItem('auth_token', token);
     }
@@ -63,9 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    clearOwnerSessionData();
     setUser(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('echallan_current_user');
   };
 
   return (

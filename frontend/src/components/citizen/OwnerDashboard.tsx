@@ -39,10 +39,12 @@ export const OwnerDashboard: React.FC = () => {
         api.getMyVehicles(),
         api.getMyChallans(),
       ]);
-      setVehicles(vList);
-      setChallans(cList);
+      setVehicles(vList || []);
+      setChallans(cList || []);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
+      setVehicles([]);
+      setChallans([]);
     } finally {
       setLoading(false);
     }

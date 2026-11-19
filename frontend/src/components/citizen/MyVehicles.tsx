@@ -54,9 +54,10 @@ export const MyVehicles: React.FC = () => {
     setLoading(true);
     try {
       const data = await api.getMyVehicles();
-      setVehicles(data);
+      setVehicles(data || []);
     } catch (err) {
       console.error('Failed to load vehicles:', err);
+      setVehicles([]);
     } finally {
       setLoading(false);
     }

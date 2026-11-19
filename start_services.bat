@@ -13,10 +13,16 @@ timeout /t 2 /nobreak >nul
 
 echo 3. Launching Frontend (:5173)...
 start "Frontend (:5173)" cmd /c "cd /d "%~dp0frontend" && npm run dev"
+timeout /t 2 /nobreak >nul
+
+echo 4. Launching Ngrok Production Tunnel (getting-hamburger-cradle.ngrok-free.dev)...
+start "Ngrok Tunnel (:8000)" cmd /c "ngrok http 8000 --url https://getting-hamburger-cradle.ngrok-free.dev"
 
 echo ========================================================
 echo All services launched in separate windows!
-echo - ML Service: http://localhost:8001 (Health: /health)
-echo - Backend API: http://localhost:8000 (Docs: /docs)
-echo - Frontend:    http://localhost:5173
+echo - ML Service:   http://localhost:8001 (Health: /health)
+echo - Backend API:  http://localhost:8000 (Docs: /docs)
+echo - Frontend:     http://localhost:5173
+echo - Live Tunnel:  https://getting-hamburger-cradle.ngrok-free.dev
+echo - Production:   https://traffic.balangshripad.dev
 echo ========================================================

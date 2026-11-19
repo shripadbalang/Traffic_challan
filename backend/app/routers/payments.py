@@ -29,27 +29,8 @@ def is_valid_uuid(val: str) -> bool:
         return False
 
 def get_linked_user_ids(user: models.User, db: Session) -> set:
-    linked = {user.id}
-    clean_email = (user.email or "").strip().lower()
-    user_mobile = getattr(user, "mobile_number", "") or ""
-
-    if (
-        ("balang" in clean_email and "shripad" in clean_email)
-        or ("shripat" in clean_email)
-        or (user_mobile in ("7385553062", "9307716594", "9763340315"))
-    ):
-        alias_users = db.query(models.User).filter(
-            (models.User.email.ilike("%balang%")) | (models.User.email.ilike("%shripat%"))
-        ).all()
-        for au in alias_users:
-            linked.add(au.id)
-
-    if user_mobile:
-        same_mobile_users = db.query(models.User).filter(models.User.mobile_number == user_mobile).all()
-        for su in same_mobile_users:
-            linked.add(su.id)
-
-    return linked
+    """Strictly return only the authenticated user's own ID to preserve ownership isolation."""
+    return {user.id}
 
 
 try:

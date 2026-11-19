@@ -46,8 +46,8 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_KEY_SECRET: str = ""
 
-    EVIDENCE_STORAGE_PATH: str = "./storage/evidence"
-    RECEIPT_STORAGE_PATH: str = "./storage/receipts"
+    EVIDENCE_STORAGE_PATH: str = os.path.join(_BACKEND_DIR, "storage", "evidence")
+    RECEIPT_STORAGE_PATH: str = os.path.join(_BACKEND_DIR, "storage", "receipts")
 
     FRONTEND_URL: str = "http://localhost:5173"
     ENV: str = "development"

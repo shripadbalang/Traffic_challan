@@ -297,12 +297,6 @@ async def capture_and_detect_violation(
                 .order_by((models.User.role == models.UserRole.owner).desc())
                 .first()
             )
-        if owner:
-            clean_email = (owner.email or "").strip().lower()
-            if ("balang" in clean_email and "shripad" in clean_email) or ("shripat" in clean_email) or (getattr(owner, "mobile_number", None) in ("7385553062", "9307716594", "9763340315")):
-                active_owner = db.query(models.User).filter(models.User.email == "balangshripad2710@gmail.com").first()
-                if active_owner:
-                    owner = active_owner
 
         # If visually detected as a car, truck, bus or other non-two-wheeler, strip two-wheeler violations
         if dv.vehicle_type and not is_two_wheeler(dv.vehicle_type):
