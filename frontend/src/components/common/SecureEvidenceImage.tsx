@@ -68,7 +68,7 @@ export const SecureEvidenceImage: React.FC<SecureEvidenceImageProps> = ({
 
   return (
     <>
-      <div className={containerClassName}>
+      <div className={`${containerClassName} group`}>
         {loading && (
           <div className="py-12 px-4 text-center text-slate-400 flex flex-col items-center gap-2 select-none">
             <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
@@ -91,7 +91,7 @@ export const SecureEvidenceImage: React.FC<SecureEvidenceImageProps> = ({
         )}
 
         {!loading && !error && blobUrl && (
-          <div className="relative group w-full flex items-center justify-center">
+          <>
             <img
               src={blobUrl}
               alt={alt}
@@ -100,11 +100,11 @@ export const SecureEvidenceImage: React.FC<SecureEvidenceImageProps> = ({
             />
 
             {allowZoom && (
-              <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
                 <button
                   type="button"
                   onClick={() => setIsZoomOpen(true)}
-                  className="px-2.5 py-1.5 rounded-lg bg-black/70 hover:bg-black/90 text-white text-xs font-semibold backdrop-blur-sm border border-white/20 shadow-md flex items-center gap-1 transition"
+                  className="px-2.5 py-1.5 rounded-lg bg-black/75 hover:bg-black/95 text-white text-xs font-semibold backdrop-blur-sm border border-white/20 shadow-md flex items-center gap-1 transition"
                   title="Inspect Original High-Resolution Evidence"
                 >
                   <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
@@ -112,7 +112,7 @@ export const SecureEvidenceImage: React.FC<SecureEvidenceImageProps> = ({
                 </button>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
